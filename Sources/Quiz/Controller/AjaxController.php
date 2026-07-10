@@ -202,8 +202,8 @@ final class AjaxController
         // Collapse consecutive slashes and remove leading/trailing slashes
         $safe = trim((string)preg_replace('/\/+/', '/', $safe), '/');
 
-        // Disallow path traversal
-        if (str_contains($safe, '..') || str_contains($safe, './')) {
+        // Disallow path traversal — check for '..' after normalization
+        if (str_contains($safe, '..')) {
             return '';
         }
 

@@ -293,7 +293,8 @@ function GetQuizLeagueDetails(int $idQuizLeague, int $idUser, string $idSession,
                 AND round = {int:current_round}',
             ['id_user' => $idUser, 'id_quiz_league' => $idQuizLeague, 'current_round' => (int)$leagueRow['current_round']]
         );
-        [$timesPlayed] = $smcFunc['db_fetch_row']($playsResult);
+        $playsRow = $smcFunc['db_fetch_row']($playsResult);
+        $timesPlayed = $playsRow !== false ? (int)$playsRow[0] : 0;
         $smcFunc['db_free_result']($playsResult);
     }
     $smcFunc['db_free_result']($leagueResult);
