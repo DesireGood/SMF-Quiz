@@ -1,10 +1,18 @@
 <?php
 
-if (!defined('SMF'))
+declare(strict_types=1);
+
+if (!defined('SMF')) {
 	die('Hacking attempt...');
+}
 
 //Main function
-function SMFQuizAdmin()
+/**
+ * S m f quiz admin.
+ *
+ * @return void
+ */
+function SMFQuizAdmin(): void
 {
 	global $context, $modSettings, $boardurl, $scripturl, $txt, $sourcedir, $settings;
 
@@ -32,11 +40,11 @@ function SMFQuizAdmin()
 		</style>';
 
 	// This uses admin tabs - as it should!
-	$context[$context['admin_menu_name']]['tab_data'] = array(
+	$context[$context['admin_menu_name']]['tab_data'] = [
 		'title' => $txt['SMFQuiz'],
 		'help' => $txt['SMFQuizMod'],
 		'description' => $txt['SMFQuizModDescription'],
-	);
+	];
 
 	$modSettings['disableQueryCheck'] = 1;
 
@@ -149,50 +157,51 @@ function SMFQuizAdmin()
 			// ]]></script>
 	';
 
-	$subActions = array(
-		'settings' => array(
+	$subActions = [
+		'settings' => [
 			'function' => 'GetSettingsData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Settings'],
-		),
-		'results' => array(
+		],
+		'results' => [
 			'function' => 'GetResultsData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Results'],
-		),
-		'disputes' => array(
+		],
+		'disputes' => [
 			'function' => 'GetDisputesData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Disputes'],
-		),
-		'quizes' => array(
+		],
+		'quizes' => [
 			'function' => 'GetQuizData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Quizes'],
-		),
-		'quizleagues' => array(
+		],
+		'quizleagues' => [
 			'function' => 'GetQuizLeagueData',
 			'text' => $txt['SMFQuizAdmin_Titles']['QuizLeagues'],
-		),
-		'categories' => array(
+		],
+		'categories' => [
 			'function' => 'GetCategoryData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Categories'],
-		),
-		'questions' => array(
+		],
+		'questions' => [
 			'function' => 'GetQuestionData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Questions'],
-		),
-		'maintenance' => array(
+		],
+		'maintenance' => [
 			'function' => 'GetMaintenanceData',
 			'text' => $txt['SMFQuizAdmin_Titles']['Maintenance'],
-		),
-		'quizimporter' => array(
+		],
+		'quizimporter' => [
 			'function' => 'GetQuizImportData',
 			'text' => $txt['SMFQuizAdmin_Titles']['QuizImporter'],
-		),
-		'admincenter' => array(
+		],
+		'admincenter' => [
 			'function' => 'GetAdminCenterData',
 			'text' => $txt['SMFQuizAdmin_Titles']['AdminCenter'],
-		),
-	);
+		],
+	];
 
-	$context['current_subaction'] = isset($_REQUEST['sa']) && in_array($_REQUEST['sa'], array_keys($subActions)) ? $_REQUEST['sa'] : 'admincenter';
+	$subAction = (string) ($_REQUEST['sa'] ?? '');
+	$context['current_subaction'] = in_array($subAction, array_keys($subActions), true) ? $subAction : 'admincenter';
 
 	$context['page_title'] = $txt['SMFQuiz'] . ' - ' . $subActions[$context['current_subaction']]['text'];
 	$subActions[$context['current_subaction']]['function']();
@@ -201,7 +210,12 @@ function SMFQuizAdmin()
 	loadTemplate('Quiz/Admin');
 }
 
-function GetMaintenanceData()
+/**
+ * Get maintenance data.
+ *
+ * @return void
+ */
+function GetMaintenanceData(): void
 {
 	global $context, $txt;
 
@@ -219,7 +233,8 @@ function GetMaintenanceData()
 	// ]]></script>';
 	
 	// User has selected to reset the quiz scores
-	if (isset($_POST['formaction']) && $_POST['formaction'] == 'resetQuizes')
+	$formAction = (string) ($_POST['formaction'] ?? '');
+	if ($formAction === 'resetQuizes')
 	{
 		ResetQuizResults();
 		ResetQuizTopScores();
@@ -229,10 +244,11 @@ function GetMaintenanceData()
 	// User has selected to complete the quiz sessions
 	if (isset($_POST['btnCompleteSessions']))
 	{
-		if ($_POST['txtSessionDays'] != 0)
-			$date  = mktime(0, 0, 0, date("m")  , date("d") - $_POST['txtSessionDays'], date("Y"));
+		$sessionDays = (int) ($_POST['txtSessionDays'] ?? 0);
+		if ($sessionDays !== 0)
+			$date  = mktime(0, 0, 0, date("m"), date("d") - $sessionDays, date("Y"));
 		else
-			$date = mktime(0, 0, 0, date("m")  , date("d") + 1, date("Y"));
+			$date = mktime(0, 0, 0, date("m"), date("d") + 1, date("Y"));
 
 		$rows = CompleteQuizSessions($date);
 
@@ -242,10 +258,11 @@ function GetMaintenanceData()
 	// User has selected to clean the infoboard
 	if (isset($_POST['btnCleanInfoBoard']))
 	{
-		if ($_POST['txtInfoBoardDays'] != 0)
-			$date  = mktime(0, 0, 0, date("m")  , date("d") - $_POST['txtInfoBoardDays'], date("Y"));
+		$infoBoardDays = (int) ($_POST['txtInfoBoardDays'] ?? 0);
+		if ($infoBoardDays !== 0)
+			$date  = mktime(0, 0, 0, date("m"), date("d") - $infoBoardDays, date("Y"));
 		else
-			$date = mktime(0, 0, 0, date("m")  , date("d") + 1, date("Y"));
+			$date = mktime(0, 0, 0, date("m"), date("d") + 1, date("Y"));
 
 		$rows = DeleteInfoBoardEntries($date);
 		$context['MaintenanceResult'] = $txt['quiz_maint_infoboard_entries_removed'];
@@ -285,7 +302,22 @@ function GetMaintenanceData()
 		DeleteOrphanedCategoriesData();
 }
 
-function ParseMessage($message, $quiztitle, $total_seconds, $total_points, $top_time, $top_points, $quizImage, $scripturl, $id_quiz, $old_member_name)
+/**
+ * Parse message.
+ *
+ * @param string $message
+ * @param string $quiztitle
+ * @param int $total_seconds
+ * @param int $total_points
+ * @param int $top_time
+ * @param int $top_points
+ * @param string $quizImage
+ * @param string $scripturl
+ * @param int $id_quiz
+ * @param string $old_member_name
+ * @return string
+ */
+function ParseMessage(string $message, string $quiztitle, int $total_seconds, int $total_points, int $top_time, int $top_points, string $quizImage, string $scripturl, int $id_quiz, string $old_member_name): string
 {
 		// @TODO single replace
 	global $user_settings;
@@ -302,7 +334,18 @@ function ParseMessage($message, $quiztitle, $total_seconds, $total_points, $top_
 	return $message;
 }
 
-function ParseLeagueMessage($message, $quizLeagueName, $oldPosition, $newPosition, $positionMovement, $id_quiz_league)
+/**
+ * Parse league message.
+ *
+ * @param string $message
+ * @param string $quizLeagueName
+ * @param int $oldPosition
+ * @param int $newPosition
+ * @param int $positionMovement
+ * @param int $id_quiz_league
+ * @return string
+ */
+function ParseLeagueMessage(string $message, string $quizLeagueName, int $oldPosition, int $newPosition, int $positionMovement, int $id_quiz_league): string
 {
 	global $user_settings, $scripturl;
 
@@ -316,38 +359,44 @@ function ParseLeagueMessage($message, $quizLeagueName, $oldPosition, $newPositio
 }
 
 // @TODO review the saving with some hard-coded numbers
-function GetSettingsData($return_config = false)
+/**
+ * Get settings data.
+ *
+ * @param bool $return_config
+ * @return array
+ */
+function GetSettingsData(bool $return_config = false): array
 {
 	global $settings, $modSettings, $user_settings, $scripturl, $sourcedir, $context, $txt;
 
 	$context['settings_title'] = $txt['SMFQuizAdmim_Settings_Page']['GeneralSettings'];
 	$context['post_url'] = $scripturl . '?action=admin;area=quiz;sa=settings;save';
 
-	$config_vars = array(
-		array('check', 'SMFQuiz_enabled', 'text_label' => $txt['SMFQuiz_Common']['QuizEnabled']),
-		array('large_text', 'SMFQuiz_Welcome', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['WelcomeMessage']),
-		array('check', 'SMFQuiz_showUserRating', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['ShowUserRating']),
-		array('text', 'SMFQuiz_InfoBoardItemsToDisplay', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['InfoBoardItemsToDisplay']),
-		array('text', 'SMFQuiz_ListPageSizes', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['ListPageSizes']),
-		array('text', 'SMFQuiz_ImportQuizesAsUserId', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['ImportQuizesAsUser']),
-		array('text', 'SMFQuiz_SessionTimeLimit', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['SessionTimeLimit']),
-		array('check', 'SMFQuiz_AutoClean', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['QuizAutoClean']),
-		array('title', 'QuizCompletionSettings', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['QuizCompletionSettings']),
-		array('text', 'SMFQuiz_0to19', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score0to19']),
-		array('text', 'SMFQuiz_20to39', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score20to39']),
-		array('text', 'SMFQuiz_40to59', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score40to59']),
-		array('text', 'SMFQuiz_60to79', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score60to79']),
-		array('text', 'SMFQuiz_80to99', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score80to99']),
-		array('text', 'SMFQuiz_99to100', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score100']),
-		array('title', 'QuizMessagingSettings', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['QuizMessagingSettings']),
-		array('check', 'SMFQuiz_SendPMOnBrokenTopScore', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['SendPMOnBrokenTopScore']),
-		array('text', 'SMFQuiz_PMBrokenTopScoreSubject', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMBrokenTopScoreMsg'] . ' - ' . $txt['SMFQuiz_Common']['Subject']),
-		array('large_text', 'SMFQuiz_PMBrokenTopScoreMsg', 10, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMBrokenTopScoreMsg'] . ' - ' . $txt['SMFQuiz_Common']['MessageBody'], 'postinput' => '<br/><img style="cursor:pointer" class="preview_loading" onclick="submitPreview(1);" src="' .$settings['default_images_url'] . '/quiz_images/preview.png" title="' . $txt['SMFQuiz_Common']['Preview'] . '" alt="' . $txt['SMFQuiz_Common']['Preview'] . '" />'),
+	$config_vars = [
+		['check', 'SMFQuiz_enabled', 'text_label' => $txt['SMFQuiz_Common']['QuizEnabled']],
+		['large_text', 'SMFQuiz_Welcome', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['WelcomeMessage']],
+		['check', 'SMFQuiz_showUserRating', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['ShowUserRating']],
+		['text', 'SMFQuiz_InfoBoardItemsToDisplay', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['InfoBoardItemsToDisplay']],
+		['text', 'SMFQuiz_ListPageSizes', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['ListPageSizes']],
+		['text', 'SMFQuiz_ImportQuizesAsUserId', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['ImportQuizesAsUser']],
+		['text', 'SMFQuiz_SessionTimeLimit', 6, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['SessionTimeLimit']],
+		['check', 'SMFQuiz_AutoClean', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['QuizAutoClean']],
+		['title', 'QuizCompletionSettings', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['QuizCompletionSettings']],
+		['text', 'SMFQuiz_0to19', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score0to19']],
+		['text', 'SMFQuiz_20to39', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score20to39']],
+		['text', 'SMFQuiz_40to59', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score40to59']],
+		['text', 'SMFQuiz_60to79', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score60to79']],
+		['text', 'SMFQuiz_80to99', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score80to99']],
+		['text', 'SMFQuiz_99to100', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['Score100']],
+		['title', 'QuizMessagingSettings', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['QuizMessagingSettings']],
+		['check', 'SMFQuiz_SendPMOnBrokenTopScore', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['SendPMOnBrokenTopScore']],
+		['text', 'SMFQuiz_PMBrokenTopScoreSubject', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMBrokenTopScoreMsg'] . ' - ' . $txt['SMFQuiz_Common']['Subject']],
+		['large_text', 'SMFQuiz_PMBrokenTopScoreMsg', 10, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMBrokenTopScoreMsg'] . ' - ' . $txt['SMFQuiz_Common']['MessageBody'], 'postinput' => '<br/><img style="cursor:pointer" class="preview_loading" onclick="submitPreview(1);" src="' .$settings['default_images_url'] . '/quiz_images/preview.png" title="' . $txt['SMFQuiz_Common']['Preview'] . '" alt="' . $txt['SMFQuiz_Common']['Preview'] . '" />'],
 
-		array('check', 'SMFQuiz_SendPMOnLeagueRoundUpdate', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['SendPMOnLeagueRoundUpdate']),
-		array('text', 'SMFQuiz_PMLeagueRoundUpdateSubject', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMLeagueRoundUpdateMsg'] . ' - ' . $txt['SMFQuiz_Common']['Subject']),
-		array('large_text', 'SMFQuiz_PMLeagueRoundUpdateMsg', 10, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMLeagueRoundUpdateMsg'] . ' - ' . $txt['SMFQuiz_Common']['MessageBody'], 'postinput' => '<br/><img style="cursor:pointer" class="preview_loading" onclick="submitPreview(2);" src="' .$settings['default_images_url'] . '/quiz_images/preview.png" title="' . $txt['SMFQuiz_Common']['Preview'] . '" alt="' . $txt['SMFQuiz_Common']['Preview'] . '" />'),
-	);
+		['check', 'SMFQuiz_SendPMOnLeagueRoundUpdate', 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['SendPMOnLeagueRoundUpdate']],
+		['text', 'SMFQuiz_PMLeagueRoundUpdateSubject', 50, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMLeagueRoundUpdateMsg'] . ' - ' . $txt['SMFQuiz_Common']['Subject']],
+		['large_text', 'SMFQuiz_PMLeagueRoundUpdateMsg', 10, 'text_label' => $txt['SMFQuizAdmim_Settings_Page']['PMLeagueRoundUpdateMsg'] . ' - ' . $txt['SMFQuiz_Common']['MessageBody'], 'postinput' => '<br/><img style="cursor:pointer" class="preview_loading" onclick="submitPreview(2);" src="' .$settings['default_images_url'] . '/quiz_images/preview.png" title="' . $txt['SMFQuiz_Common']['Preview'] . '" alt="' . $txt['SMFQuiz_Common']['Preview'] . '" />'],
+	];
 
 	if ($return_config)
 		return $config_vars;
@@ -363,10 +412,17 @@ function GetSettingsData($return_config = false)
 	prepareDBSettingContext($config_vars);
 	$context['sub_template'] = 'show_settings';
 	// @TODO reimplement the preview
+
+	return $config_vars;
 }
 
 // Function to get appropriate data in the category administration area
-function GetCategoryData()
+/**
+ * Get category data.
+ *
+ * @return void
+ */
+function GetCategoryData(): void
 {
 	// If CategoryAction has been set it means the user has clicked on one of the buttons
 	if (isset($_POST['NewCategory'])) // User wants to create a new Category
@@ -380,12 +436,16 @@ function GetCategoryData()
 	// @TODO ParentCategory?
 	elseif (!isset($_POST['CategoryAction']))
 	{
-		if (isset($_GET["id"]))
+		$id = (int) ($_GET['id'] ?? 0);
+		$children = (int) ($_GET['children'] ?? 0);
+		$parent = (int) ($_GET['parent'] ?? 0);
+
+		if ($id > 0)
 			GetEditCategoryData();
-		elseif (isset($_GET["children"]))
-			GetCategoryChildrenData($_GET["children"]);
-		elseif (isset($_GET["parent"]))
-			GetParentCategoryData($_GET["parent"]);
+		elseif (isset($_GET['children']))
+			GetCategoryChildrenData($children);
+		elseif (isset($_GET['parent']))
+			GetParentCategoryData($parent);
 		// Otherwise just get the default category data
 		else
 			GetCategoryChildrenData(0);
@@ -393,16 +453,18 @@ function GetCategoryData()
 }
 
 // Function to get appropriate data in the question administration area
-function GetQuestionData()
+/**
+ * Get question data.
+ *
+ * @return void
+ */
+function GetQuestionData(): void
 {
 	global $txt, $context;
 
-	if (isset($_POST['id_quiz']))
-		$context['SMFQuiz']['id_quiz'] = $_POST['id_quiz'];
-	elseif (isset($_GET['id_quiz']))
-		$context['SMFQuiz']['id_quiz'] = $_GET['id_quiz'];
-	else
-		$context['SMFQuiz']['id_quiz'] = 0;
+	$context['SMFQuiz']['id_quiz'] = isset($_POST['id_quiz'])
+		? (int) ($_POST['id_quiz'] ?? 0)
+		: (isset($_GET['id_quiz']) ? (int) ($_GET['id_quiz'] ?? 0) : 0);
 
 	// If QuestionAction has been set it means the user has clicked on one of the buttons
 	if (isset($_POST['NewQuestion'])) // User wants to create a new Question
@@ -419,7 +481,7 @@ function GetQuestionData()
 		GetUpdateQuestionData(1);
 	elseif (!isset($_POST["QuestionAction"]))
 	{
-		if (isset($_GET["id"]))
+		if ((int) ($_GET['id'] ?? 0) > 0)
 			GetEditQuestionData();
 		else
 			// Note that this function is in Quiz/Db.php
@@ -428,7 +490,12 @@ function GetQuestionData()
 }
 
 // Function to get appropriate data in the Quiz administration section
-function GetQuizData()
+/**
+ * Get quiz data.
+ *
+ * @return void
+ */
+function GetQuizData(): void
 {
 	global $context;
 
@@ -442,7 +509,7 @@ function GetQuizData()
 	elseif (isset($_POST['QuizQuestions']))
 	{
 		$context['current_subaction'] = 'questions';
-		$context['SMFQuiz']['id_quiz'] = $_POST['id_quiz'];
+		$context['SMFQuiz']['id_quiz'] = (int) ($_POST['id_quiz'] ?? 0);
 		GetQuestionsData($context['SMFQuiz']['id_quiz']);
 	}
 	elseif (isset($_POST['SaveQuizAndAddQuestions']) || isset($_POST['SaveQuiz']))  // User has selected to save a new quiz and then enter questions into that quiz // User has selected to save a new quiz
@@ -456,7 +523,12 @@ function GetQuizData()
 
 
 // Function to get appropriate data in the Results administration section
-function GetResultsData()
+/**
+ * Get results data.
+ *
+ * @return void
+ */
+function GetResultsData(): void
 {
 	global $context;
 
@@ -468,7 +540,12 @@ function GetResultsData()
 		GetShowResultsData();
 }
 
-function GetDisputesData()
+/**
+ * Get disputes data.
+ *
+ * @return void
+ */
+function GetDisputesData(): void
 {
 	global $context;
 
@@ -481,24 +558,30 @@ function GetDisputesData()
 }
 
 // Function to get appropriate data in the Quiz Leage administration section
-function GetQuizLeagueData()
+/**
+ * Get quiz league data.
+ *
+ * @return void
+ */
+function GetQuizLeagueData(): void
 {
 	global $context;
 
 	// If user has clicked button to enable quiz league
 	if (isset($_GET['enable_quizleague_id']))
-		UpdateQuizLeagueStatus($_GET['enable_quizleague_id'], 1);
+		UpdateQuizLeagueStatus((int) ($_GET['enable_quizleague_id'] ?? 0), 1);
 
 	// If user has clicked button to enable quiz league
 	if (isset($_GET['disable_quizleague_id']))
-		UpdateQuizLeagueStatus($_GET['disable_quizleague_id'], 0);
+		UpdateQuizLeagueStatus((int) ($_GET['disable_quizleague_id'] ?? 0), 0);
 
 	// If QuizLeagueAction has been set it means the user has clicked on one of the buttons
-	if (isset($_POST["QuizLeagueAction"]))
+	$quizLeagueAction = (string) ($_POST['QuizLeagueAction'] ?? '');
+	if ($quizLeagueAction !== '')
 	{
 		// Determine which action is being taken and do appropriate data work
 		// @TODO localization
-		switch ($_POST["QuizLeagueAction"])
+		switch ($quizLeagueAction)
 		{
 			case 'New Quiz League' : // User wants to create a new Quiz league
 				GetNewQuizLeagueData();
@@ -529,7 +612,12 @@ function GetQuizLeagueData()
 }
 
 // Function to get appropriate data in the new category section
-function GetNewCategoryData()
+/**
+ * Get new category data.
+ *
+ * @return void
+ */
+function GetNewCategoryData(): void
 {
 	global $context;
 
@@ -545,7 +633,12 @@ function GetNewCategoryData()
 	$context['SMFQuiz']['Action'] = 'NewCategory';
 }
 
-function GetNewQuestionData()
+/**
+ * Get new question data.
+ *
+ * @return void
+ */
+function GetNewQuestionData(): void
 {
 	global $context;
 
@@ -553,7 +646,7 @@ function GetNewQuestionData()
 	SetImageUploadJavascript();
 
 	if (isset($_POST['id_quiz']))
-		$context['SMFQuiz']['id_quiz'] = $_POST['id_quiz'];
+		$context['SMFQuiz']['id_quiz'] = (int) ($_POST['id_quiz'] ?? 0);
 
 	// The new question page provides a list of quizes to select. Therefore we need to obtain a list of category data
 	GetAllQuizDetails();
@@ -566,15 +659,19 @@ function GetNewQuestionData()
 	$context['SMFQuiz']['Action'] = 'NewQuestion';
 }
 
-function GetEditQuestionData()
+/**
+ * Get edit question data.
+ *
+ * @return void
+ */
+function GetEditQuestionData(): void
 {
 	global $context;
 
 	// Append required javascript to context
 	SetImageUploadJavascript();
 
-		// @TODO ???
-	isset($_GET['id']) ? $questionId = $_GET['id'] : 0;
+	$questionId = (int) ($_GET['id'] ?? 0);
 
 	GetQuestionAndAnswers($questionId);
 
@@ -583,15 +680,19 @@ function GetEditQuestionData()
 	$context['SMFQuiz']['Action'] = 'EditQuestion';
 }
 
-function GetEditCategoryData()
+/**
+ * Get edit category data.
+ *
+ * @return void
+ */
+function GetEditCategoryData(): void
 {
 	global $context;
 
 	// Append required javascript to context
 	SetImageUploadJavascript();
 
-		// @TODO ???
-	isset($_GET['id']) ? $categoryId = $_GET['id'] : 0;
+	$categoryId = (int) ($_GET['id'] ?? 0);
 
 	GetCategory($categoryId);
 
@@ -606,7 +707,12 @@ function GetEditCategoryData()
 /*
 Function used to set the jscript/javascript required for the image upload functionality
 */
-function SetImageUploadJavascript()
+/**
+ * Set image upload javascript.
+ *
+ * @return void
+ */
+function SetImageUploadJavascript(): void
 {
 	global $context, $boardurl, $settings;
 
@@ -683,12 +789,16 @@ function SetImageUploadJavascript()
 	';
 }
 
-function GetEditQuizData()
+/**
+ * Get edit quiz data.
+ *
+ * @return void
+ */
+function GetEditQuizData(): void
 {
 	global $context;
 
-		// @TODO ???
-	isset($_GET['id']) ? $quizId = $_GET['id'] : 0;
+	$quizId = (int) ($_GET['id'] ?? 0);
 
 	// Append required javascript to context
 	SetImageUploadJavascript();
@@ -703,12 +813,16 @@ function GetEditQuizData()
 	$context['SMFQuiz']['Action'] = 'EditQuiz';
 }
 
-function GetEditQuizLeagueData()
+/**
+ * Get edit quiz league data.
+ *
+ * @return void
+ */
+function GetEditQuizLeagueData(): void
 {
 	global $context;
 
-		// @TODO ???
-	isset($_GET['id']) ? $id_quiz_league = $_GET['id'] : 0;
+	$id_quiz_league = (int) ($_GET['id'] ?? 0);
 
 	GetQuizLeagueDetails($id_quiz_league);
 
@@ -720,7 +834,12 @@ function GetEditQuizLeagueData()
 	$context['SMFQuiz']['Action'] = 'EditQuizLeague';
 }
 
-function GetNewQuizData()
+/**
+ * Get new quiz data.
+ *
+ * @return void
+ */
+function GetNewQuizData(): void
 {
 	global $context;
 
@@ -735,7 +854,12 @@ function GetNewQuizData()
 	$context['SMFQuiz']['Action'] = 'NewQuiz';
 }
 
-function GetNewQuizLeagueData()
+/**
+ * Get new quiz league data.
+ *
+ * @return void
+ */
+function GetNewQuizLeagueData(): void
 {
 	global $context;
 
@@ -748,22 +872,33 @@ function GetNewQuizLeagueData()
 
 // From the specified id key, loop through the form variables and extract the associated identifiers. Return a string containing these
 // identifiers in a comma separated list
-function GetKeysFromPost($id)
+/**
+ * Get keys from post.
+ *
+ * @param string $id
+ * @return string
+ */
+function GetKeysFromPost(string $id): string
 {
 	$deleteKeys = '';
 
-	foreach($_POST as $key => $value)
-		if (substr($key, 0, strlen($id)) == $id)
-			$deleteKeys .= substr($key, strlen($id)) . ',';
+	foreach ($_POST as $key => $value)
+		if (substr((string) $key, 0, strlen($id)) === $id)
+			$deleteKeys .= substr((string) $key, strlen($id)) . ',';
 
-	if (substr($deleteKeys, strlen($deleteKeys)-1) == ',')
+	if ($deleteKeys !== '' && substr($deleteKeys, strlen($deleteKeys) - 1) === ',')
 		$deleteKeys = substr($deleteKeys, 0, strlen($deleteKeys)-1);
 
 	return $deleteKeys;
 }
 
 
-function GetDeleteQuestionData()
+/**
+ * Get delete question data.
+ *
+ * @return void
+ */
+function GetDeleteQuestionData(): void
 {
 	global $context;
 
@@ -781,7 +916,12 @@ function GetDeleteQuestionData()
 	$context['SMFQuiz']['Action'] = 'DeleteQuestion';
 }
 
-function GetDeleteCategoryData()
+/**
+ * Get delete category data.
+ *
+ * @return void
+ */
+function GetDeleteCategoryData(): void
 {
 	global $context;
 
@@ -799,7 +939,12 @@ function GetDeleteCategoryData()
 	$context['SMFQuiz']['Action'] = 'DeleteCategory';
 }
 
-function GetDeleteQuizData()
+/**
+ * Get delete quiz data.
+ *
+ * @return void
+ */
+function GetDeleteQuizData(): void
 {
 	global $context;
 
@@ -817,7 +962,12 @@ function GetDeleteQuizData()
 	$context['SMFQuiz']['Action'] = 'DeleteQuiz';
 }
 
-function GetDeleteQuizResultData()
+/**
+ * Get delete quiz result data.
+ *
+ * @return void
+ */
+function GetDeleteQuizResultData(): void
 {
 	global $context;
 
@@ -831,7 +981,12 @@ function GetDeleteQuizResultData()
 	GetShowResultsData();
 }
 
-function GetDeleteQuizDisputeData()
+/**
+ * Get delete quiz dispute data.
+ *
+ * @return void
+ */
+function GetDeleteQuizDisputeData(): void
 {
 	global $context;
 
@@ -845,7 +1000,12 @@ function GetDeleteQuizDisputeData()
 	GetShowDisputesData();
 }
 
-function GetDeleteQuizLeagueData()
+/**
+ * Get delete quiz league data.
+ *
+ * @return void
+ */
+function GetDeleteQuizLeagueData(): void
 {
 	global $context;
 
@@ -864,37 +1024,36 @@ function GetDeleteQuizLeagueData()
 }
 
 
-function GetUpdateQuizData()
+/**
+ * Get update quiz data.
+ *
+ * @return void
+ */
+function GetUpdateQuizData(): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$title = isset($_POST['title']) ? $_POST['title'] : '';
-	$description = isset($_POST['description']) ? $_POST['description'] : '';
-	$limit = isset($_POST['limit']) ? $_POST['limit'] : '';
-	$seconds = isset($_POST['seconds']) ? $_POST['seconds'] : '';
-	$showanswers = isset($_POST['show_answers']) ? $_POST['show_answers'] : '';
-	$enabled = isset($_POST['enabled']) ? $_POST['enabled'] : '';
-	$image = isset($_POST['image']) && $_POST['image'] != '-' ? $_POST['image'] : '';	
-	$categoryId = isset($_POST['id_category']) ? $_POST['id_category'] : '';
-	$quizId = isset($_POST['id_quiz']) ? $_POST['id_quiz'] : '';
-	$oldCategoryId = isset($_POST["oldCategoryId"]) ? $_POST["oldCategoryId"] : ''; // Need the old category, as if it is different we need to change quiz counts
+	$title = (string) ($_POST['title'] ?? '');
+	$description = (string) ($_POST['description'] ?? '');
+	$limit = (int) ($_POST['limit'] ?? 0);
+	$seconds = (int) ($_POST['seconds'] ?? 0);
+	$showanswers = (string) ($_POST['show_answers'] ?? '');
+	$enabled = (string) ($_POST['enabled'] ?? '');
+	$image = (string) ($_POST['image'] ?? '');
+	$image = $image !== '-' ? $image : '';
+	$categoryId = (int) ($_POST['id_category'] ?? 0);
+	$quizId = (int) ($_POST['id_quiz'] ?? 0);
+	$oldCategoryId = (int) ($_POST['oldCategoryId'] ?? 0); // Need the old category, as if it is different we need to change quiz counts
 	$for_review = 1;
 
-	if ($showanswers == 'on')
-		$showanswers = 1;
-	else
-		$showanswers = 0;
-
-	if ($enabled == 'on')
-		$enabled = 1;
-	else
-		$enabled = 0;
+	$showanswers = $showanswers === 'on' ? 1 : 0;
+	$enabled = $enabled === 'on' ? 1 : 0;
 
 	// TODO: At a later date we probably want to make this a little more sophisticated by adding
 	// PMs back to the creator and some workflow
-	if ($enabled == 1)
+	if ($enabled === 1)
 		$for_review = 0;
 
 	// Save the data and return the identifier for this newly created quiz
@@ -918,30 +1077,29 @@ function GetUpdateQuizData()
 	}
 }
 
-function GetSaveQuizData()
+/**
+ * Get save quiz data.
+ *
+ * @return void
+ */
+function GetSaveQuizData(): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$title = isset($_POST['title']) ? $_POST['title'] : '';
-	$description = isset($_POST['description']) ? $_POST['description'] : '';
-	$limit = isset($_POST['limit']) ? $_POST['limit'] : '';
-	$seconds = isset($_POST['seconds']) ? $_POST['seconds'] : '';
-	$showanswers = isset($_POST['showanswers']) ? $_POST['showanswers'] : '';
-	$enabled = isset($_POST['enabled']) ? $_POST['enabled'] : '';
-	$image = isset($_POST['image']) && $_POST['image'] != '-' ? $_POST['image'] : '';	
-	$categoryId = isset($_POST['id_category']) ? $_POST['id_category'] : '';
+	$title = (string) ($_POST['title'] ?? '');
+	$description = (string) ($_POST['description'] ?? '');
+	$limit = (int) ($_POST['limit'] ?? 0);
+	$seconds = (int) ($_POST['seconds'] ?? 0);
+	$showanswers = (string) ($_POST['showanswers'] ?? '');
+	$enabled = (string) ($_POST['enabled'] ?? '');
+	$image = (string) ($_POST['image'] ?? '');
+	$image = $image !== '-' ? $image : '';
+	$categoryId = (int) ($_POST['id_category'] ?? 0);
 
-	if ($showanswers == 'on')
-		$showanswers = 1;
-	else
-		$showanswers = 0;
-
-	if ($enabled == 'on')
-		$enabled = 1;
-	else
-		$enabled = 0;
+	$showanswers = $showanswers === 'on' ? 1 : 0;
+	$enabled = $enabled === 'on' ? 1 : 0;
 
 	// Save the data and return the identifier for this newly created quiz
 	$newQuizId = SaveQuiz($title, $description, $limit, $seconds, $showanswers, $image, $categoryId, $enabled, $context['user']['id'], 0);
@@ -966,7 +1124,13 @@ function GetSaveQuizData()
 
 // Function to replace curly quotes with normal ones - might be a better way of doing this, but this
 // will do for the moment
-function ReplaceCurlyQuotes($stringToReplace)
+/**
+ * Replace curly quotes.
+ *
+ * @param string $stringToReplace
+ * @return string
+ */
+function ReplaceCurlyQuotes(string $stringToReplace): string
 {
 	// @TODO single replace
 	$replaceString = str_replace('�', '"', $stringToReplace);
@@ -975,19 +1139,25 @@ function ReplaceCurlyQuotes($stringToReplace)
 	return $replaceString;
 }
 
-function GetUpdateQuestionData($addMore)
+/**
+ * Get update question data.
+ *
+ * @param int $addMore
+ * @return void
+ */
+function GetUpdateQuestionData(int $addMore): void
 {
 	global $context, $smcFunc, $db_prefix;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$questionId = isset($_POST["questionId"]) ? $_POST["questionId"] : '';
-	$questionText = isset($_POST['question_text']) ? ReplaceCurlyQuotes($_POST['question_text']) : '';
-	$image = isset($_POST['image']) && $_POST['image'] != '-' ? $_POST['image'] : '';	
-	$answerText = isset($_POST['quiz_answer_text']) ? ReplaceCurlyQuotes($_POST['quiz_answer_text']) : '';
-	$questionTypeId = isset($_POST['id_question_type']) ? $_POST['id_question_type'] : '';
-	// @TODO check input
-	$quizId = $_POST['id_quiz'];
+	$questionId = (int) ($_POST['questionId'] ?? 0);
+	$questionText = ReplaceCurlyQuotes((string) ($_POST['question_text'] ?? ''));
+	$image = (string) ($_POST['image'] ?? '');
+	$image = $image !== '-' ? $image : '';
+	$answerText = ReplaceCurlyQuotes((string) ($_POST['quiz_answer_text'] ?? ''));
+	$questionTypeId = (int) ($_POST['id_question_type'] ?? 0);
+	$quizId = (int) ($_POST['id_quiz'] ?? 0);
 
 	// Update the Question
 	UpdateQuestion($questionId, $questionText, $image, $answerText);
@@ -995,7 +1165,7 @@ function GetUpdateQuestionData($addMore)
 	// Update the answer
 	switch ($questionTypeId)
 	{
-		case '1' : // Multiple Choice
+		case 1: // Multiple Choice
 	// @TODO query
 			$smcFunc['db_query']('', "
 				DELETE FROM {$db_prefix}quiz_answer
@@ -1004,18 +1174,18 @@ function GetUpdateQuestionData($addMore)
 			AddMultipleChoiceAnswer($questionId);
 			break;
 
-		case '2' : // Free Text
-			UpdateFreeTextAnswer($questionId);
+		case 2: // Free Text
+			UpdateFreeTextAnswer();
 			break;
 
-		case '3' : // True/False
-			UpdateTrueFalseAnswer($questionId);
+		case 3: // True/False
+			UpdateTrueFalseAnswer();
 			break;
 	}
 
 	$context['SMFQuiz']['id_quiz'] = $quizId;
 
-	if ($addMore == 0)
+	if ($addMore === 0)
 	{
 		$context['SMFQuiz']['Action'] = 'Questions';
 		// The next page will show all the questions, so get this data
@@ -1029,17 +1199,24 @@ function GetUpdateQuestionData($addMore)
 }
 
 // Function that handles the saving of the specified new quiz league data
-function GetSaveQuestionData($addMore)
+/**
+ * Get save question data.
+ *
+ * @param int $addMore
+ * @return void
+ */
+function GetSaveQuestionData(int $addMore): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$questionText = isset($_POST['question_text']) ? ReplaceCurlyQuotes($_POST['question_text']) : '';
-	$questionTypeId = isset($_POST['id_question_type']) ? $_POST['id_question_type'] : '';
-	$quizId = isset($_POST['id_quiz']) ? $_POST['id_quiz'] : 0;
-	$image = isset($_POST['image']) && $_POST['image'] != '-' ? $_POST['image'] : '';
-	$answerText = isset($_POST['question_answer_text']) ? ReplaceCurlyQuotes($_POST['question_answer_text']) : '';
+	$questionText = ReplaceCurlyQuotes((string) ($_POST['question_text'] ?? ''));
+	$questionTypeId = (int) ($_POST['id_question_type'] ?? 0);
+	$quizId = (int) ($_POST['id_quiz'] ?? 0);
+	$image = (string) ($_POST['image'] ?? '');
+	$image = $image !== '-' ? $image : '';
+	$answerText = ReplaceCurlyQuotes((string) ($_POST['question_answer_text'] ?? ''));
 
 	// Save the Question
 	$questionId = SaveQuestion($questionText, $questionTypeId, $quizId, $image, $answerText);
@@ -1047,20 +1224,20 @@ function GetSaveQuestionData($addMore)
 	// Save the answer
 	switch ($questionTypeId)
 	{
-		case '1' : // Multiple Choice
+		case 1: // Multiple Choice
 			AddMultipleChoiceAnswer($questionId);
 			break;
 
-		case '2' : // Free Text
+		case 2: // Free Text
 			AddFreeTextAnswer($questionId);
 			break;
 
-		case '3' : // True/False
+		case 3: // True/False
 			AddTrueFalseAnswer($questionId);
 			break;
 	}
 
-	if ($addMore == 0)
+	if ($addMore === 0)
 	{
 		$context['SMFQuiz']['Action'] = 'Questions';
 
@@ -1070,138 +1247,163 @@ function GetSaveQuestionData($addMore)
 	else
 	{
 		GetNewQuestionData();
-		$context['SMFQuiz']['id_quiz'] = $_POST['id_quiz'];
+		$context['SMFQuiz']['id_quiz'] = (int) ($_POST['id_quiz'] ?? 0);
 		$context['SMFQuiz']['Action'] = 'NewQuestion';
 	}
 }
 
-function UpdateFreeTextAnswer()
+/**
+ * Update free text answer.
+ *
+ * @return void
+ */
+function UpdateFreeTextAnswer(): void
 {
 	// Free text answer simply has the text entered as the answer, so we only need to insert this into the database marking it as correct
-	$answerText = isset($_POST["freeTextAnswer"]) ? ReplaceCurlyQuotes($_POST["freeTextAnswer"]) : '';
-	$answerId = isset($_POST["answerId"]) ? $_POST["answerId"] : '';
+	$answerText = ReplaceCurlyQuotes((string) ($_POST['freeTextAnswer'] ?? ''));
+	$answerId = (int) ($_POST['answerId'] ?? 0);
 
 	// Update the data
 	UpdateAnswer($answerId, $answerText, 1);
 }
 
-function AddFreeTextAnswer($questionId)
+/**
+ * Add free text answer.
+ *
+ * @param int $questionId
+ * @return void
+ */
+function AddFreeTextAnswer(int $questionId): void
 {
 	// Free text answer simply has the text entered as the answer, so we only need to insert this into the database marking it as correct
-	$answerText = isset($_POST["freeTextAnswer"]) ? ReplaceCurlyQuotes($_POST["freeTextAnswer"]) : '';
+	$answerText = ReplaceCurlyQuotes((string) ($_POST['freeTextAnswer'] ?? ''));
 
 	// Save the data
 	SaveAnswer($questionId, $answerText, 1);
 }
 
-function UpdateTrueFalseAnswer()
+/**
+ * Update true false answer.
+ *
+ * @return void
+ */
+function UpdateTrueFalseAnswer(): void
 {
-	$correctAnswerId = isset($_POST["trueFalseAnswer"]) ? $_POST["trueFalseAnswer"] : 0;
+	$correctAnswerId = (string) ($_POST['trueFalseAnswer'] ?? '0');
 
-	foreach($_POST as $key => $value)
+	foreach ($_POST as $key => $value)
 	{
-		// If the form value is one of the answers
-		if (substr($key, 0, 8) == 'answerId')
+		$key = (string) $key;
+		$value = (string) $value;
+		if (substr($key, 0, 8) === 'answerId' && strlen($value) > 0)
 		{
-			// Need to have some text in answer
-			if (strlen($value) > 0)
-			{
-				// Determine whether correct answer or not
-				if (substr($key, 8) == $correctAnswerId)
-					UpdateAnswer(substr($key, 8), $value, 1);
-				else
-					UpdateAnswer(substr($key, 8), $value, 0);
-			}
+			if (substr($key, 8) === $correctAnswerId)
+				UpdateAnswer((int) substr($key, 8), $value, 1);
+			else
+				UpdateAnswer((int) substr($key, 8), $value, 0);
 		}
 	}
 }
 
-function AddTrueFalseAnswer($questionId)
+/**
+ * Add true false answer.
+ *
+ * @param int $questionId
+ * @return void
+ */
+function AddTrueFalseAnswer(int $questionId): void
 {
 	// True false answer is simply saved as one asnwer that is correct
-	$answerText = isset($_POST["trueFalseAnswer"]) ? ReplaceCurlyQuotes($_POST["trueFalseAnswer"]) : 'false';
+	$answerText = ReplaceCurlyQuotes((string) ($_POST['trueFalseAnswer'] ?? 'false'));
 
 	SaveAnswer($questionId, $answerText, 1);
 
 	// Add the alternative answer
-	if ($answerText == 'false')
+	if ($answerText === 'false')
 		SaveAnswer($questionId, 'true', 0);
 	else
 		SaveAnswer($questionId, 'false', 0);
 }
 
-function UpdateMultipleChoiceAnswer()
+/**
+ * Update multiple choice answer.
+ *
+ * @return void
+ */
+function UpdateMultipleChoiceAnswer(): void
 {
 	// For mutiple choice answers we need to loop through each choice adding the answer and setting the correct one
-	$correctAnswerId = isset($_POST["correctAnswer"]) ? $_POST["correctAnswer"] : 0;
+	$correctAnswerId = (string) ($_POST['correctAnswer'] ?? '0');
 
-	foreach($_POST as $key => $value)
+	foreach ($_POST as $key => $value)
 	{
-		// If the form value is one of the answers
-		if (substr($key, 0, 6) == 'answer' && $key != 'quiz_answer_text')
+		$key = (string) $key;
+		$value = (string) $value;
+		if (substr($key, 0, 6) === 'answer' && $key !== 'quiz_answer_text' && strlen($value) > 0)
 		{
-			// Need to have some text in answer
-			if (strlen($value) > 0)
-			{
-				// Determine whether correct answer or not
-				if (substr($key, 6) == $correctAnswerId)
-					UpdateAnswer(substr($key, 6), $value, 1);
-				else
-					UpdateAnswer(substr($key, 6), $value, 0);
-			}
+			if (substr($key, 6) === $correctAnswerId)
+				UpdateAnswer((int) substr($key, 6), $value, 1);
+			else
+				UpdateAnswer((int) substr($key, 6), $value, 0);
 		}
 	}
 }
 
-function AddMultipleChoiceAnswer($questionId)
+/**
+ * Add multiple choice answer.
+ *
+ * @param int $questionId
+ * @return void
+ */
+function AddMultipleChoiceAnswer(int $questionId): void
 {
 	// For mutiple choice answers we need to loop through each choice adding the answer and setting the correct one
-	$correctAnswerId = isset($_POST["correctAnswer"]) ? $_POST["correctAnswer"] : 0;
+	$correctAnswerId = (string) ($_POST['correctAnswer'] ?? '0');
 
-	// @TODO check input?
 	foreach ($_POST as $key => $value)
 	{
-		// If the form value is one of the answers
-		if (substr($key, 0, 6) == 'answer' && $key != 'answerText')
+		$key = (string) $key;
+		$value = (string) $value;
+		if (substr($key, 0, 6) === 'answer' && $key !== 'answerText' && strlen($value) > 0)
 		{
-			// Need to have some text in answer
-			if (strlen($value) > 0)
-			{
-				// Determine whether correct answer or not
-				if (substr($key, 6) == $correctAnswerId)
-					SaveAnswer($questionId, $value, 1);
-				else
-					SaveAnswer($questionId, $value, 0);
-			}
+			if (substr($key, 6) === $correctAnswerId)
+				SaveAnswer($questionId, $value, 1);
+			else
+				SaveAnswer($questionId, $value, 0);
 		}
 	}
 }
 
 // Function that handles the saving of the specified new quiz league data
-function GetSaveQuizLeagueData()
+/**
+ * Get save quiz league data.
+ *
+ * @return void
+ */
+function GetSaveQuizLeagueData(): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$title = isset($_POST['title']) ? $_POST['title'] : '';
-	$description = isset($_POST['description']) ? $_POST['description'] : '';
-	$interval = isset($_POST["interval"]) ? $_POST["interval"] : '';
-	$questions = isset($_POST["questions"]) ? $_POST["questions"] : '';
-	$seconds = isset($_POST['seconds']) ? $_POST['seconds'] : '';
-	$points = isset($_POST["points"]) ? $_POST["points"] : '';
-	$showanswers = isset($_POST['showanswers']) ? $_POST['showanswers'] : '';
-	$totalRounds = isset($_POST["totalRounds"]) ? $_POST["totalRounds"] : '';
-	$state = isset($_POST["state"]) ? $_POST["state"] : '';
+	$title = (string) ($_POST['title'] ?? '');
+	$description = (string) ($_POST['description'] ?? '');
+	$interval = (int) ($_POST['interval'] ?? 0);
+	$questions = (int) ($_POST['questions'] ?? 0);
+	$seconds = (int) ($_POST['seconds'] ?? 0);
+	$points = (int) ($_POST['points'] ?? 0);
+	$showanswers = (string) ($_POST['showanswers'] ?? '');
+	$totalRounds = (int) ($_POST['totalRounds'] ?? 0);
+	$state = (int) ($_POST['state'] ?? 0);
 
 	// Build the category selection string
-	$categoryArray = $_POST["categories"];
+	$categoryArray = (array) ($_POST['categories'] ?? []);
 	$categories = '';
 	foreach ($categoryArray as $category)
 	{
 		// If the ALL category has been selected at all there is no point in storing the 
 		// category selected data
-		if ($category == 0)
+		if ((int) $category === 0)
 		{
 			$categories = '';
 			break;
@@ -1209,14 +1411,11 @@ function GetSaveQuizLeagueData()
 		$categories .= $category . ',';
 	}
 
-	if ($showanswers == 'on')
-		$showanswers = 1;
-	else
-		$showanswers = 0;
+	$showanswers = $showanswers === 'on' ? 1 : 0;
 
 	// Save the data
-	if (!empty($title))
-		SaveQuizLeague($title, $description, $interval, $questions, $seconds, $points, $showanswers, $totalRounds, $state, substr_replace($categories,"",-1));
+	if ($title !== '')
+		SaveQuizLeague($title, $description, $interval, $questions, $seconds, $points, $showanswers, $totalRounds, $state, rtrim($categories, ','));
 
 	GetAllCategoryDetails();
 	$context['SMFQuiz']['Action'] = 'SaveQuizLeague';
@@ -1224,53 +1423,61 @@ function GetSaveQuizLeagueData()
 
 
 // Function that handles the updating of the specified quiz league data
-function GetUpdateQuizLeagueData()
+/**
+ * Get update quiz league data.
+ *
+ * @return void
+ */
+function GetUpdateQuizLeagueData(): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$title = isset($_POST['title']) ? $_POST['title'] : '';
-	$description = isset($_POST['description']) ? $_POST['description'] : '';
-	$interval = isset($_POST["interval"]) ? $_POST["interval"] : '';
-	$questions = isset($_POST["questions"]) ? $_POST["questions"] : '';
-	$seconds = isset($_POST['seconds']) ? $_POST['seconds'] : '';
-	$points = isset($_POST["points"]) ? $_POST["points"] : '';
-	$showanswers = isset($_POST['showanswers']) ? $_POST['showanswers'] : '';
-	$totalRounds = isset($_POST["totalRounds"]) ? $_POST["totalRounds"] : '';
-	$state = isset($_POST["state"]) ? $_POST["state"] : '';
-	$id_quiz_league = isset($_POST["id_quiz_league"]) ? $_POST["id_quiz_league"] : 0;
+	$title = (string) ($_POST['title'] ?? '');
+	$description = (string) ($_POST['description'] ?? '');
+	$interval = (int) ($_POST['interval'] ?? 0);
+	$questions = (int) ($_POST['questions'] ?? 0);
+	$seconds = (int) ($_POST['seconds'] ?? 0);
+	$points = (int) ($_POST['points'] ?? 0);
+	$showanswers = (string) ($_POST['showanswers'] ?? '');
+	$totalRounds = (int) ($_POST['totalRounds'] ?? 0);
+	$state = (int) ($_POST['state'] ?? 0);
+	$id_quiz_league = (int) ($_POST['id_quiz_league'] ?? 0);
 
 	// Build the category selection string
-	$categoryArray = $_POST["categories"];
+	$categoryArray = (array) ($_POST['categories'] ?? []);
 	$categories = '';
 	foreach ($categoryArray as $category)
-		$categories .= $category . ',';
+		$categories .= (int) $category . ',';
 
-	if ($showanswers == 'on')
-		$showanswers = 1;
-	else
-		$showanswers = 0;
+	$showanswers = $showanswers === 'on' ? 1 : 0;
 
 	// Save the data
-	if (!empty($title))
-		UpdateQuizLeague($id_quiz_league, $title, $description, $interval, $questions, $seconds, $points, $showanswers, $totalRounds, $state, substr_replace($categories,"",-1));
+	if ($title !== '')
+		UpdateQuizLeague($id_quiz_league, $title, $description, $interval, $questions, $seconds, $points, $showanswers, $totalRounds, $state, rtrim($categories, ','));
 
 	GetAllQuizLeagueDetails();
 	$context['SMFQuiz']['Action'] = 'ShowQuizLeagues';
 }
 
-function GetUpdateCategoryData()
+/**
+ * Get update category data.
+ *
+ * @return void
+ */
+function GetUpdateCategoryData(): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$categoryId = isset($_POST['id_category']) ? $_POST['id_category'] : '';
-	$name = isset($_POST["name"]) ? $_POST["name"] : '';
-	$description = isset($_POST['description']) ? $_POST['description'] : '';
-	$parent = isset($_POST["parentId"]) ? $_POST["parentId"] : '';
-	$image = isset($_POST['image']) && $_POST['image'] != '-' ? $_POST['image'] : '';
+	$categoryId = (int) ($_POST['id_category'] ?? 0);
+	$name = (string) ($_POST['name'] ?? '');
+	$description = (string) ($_POST['description'] ?? '');
+	$parent = (int) ($_POST['parentId'] ?? 0);
+	$image = (string) ($_POST['image'] ?? '');
+	$image = $image !== '-' ? $image : '';
 
 	// Save the data
 	UpdateCategory($categoryId, $name, $description, $parent, $image);
@@ -1279,111 +1486,127 @@ function GetUpdateCategoryData()
 	$context['SMFQuiz']['Action'] = 'Categories';
 }
 
-function GetQuestionsData($quizId)
+/**
+ * Get questions data.
+ *
+ * @param int $quizId
+ * @return void
+ */
+function GetQuestionsData(int $quizId): void
 {
 	global $context;
 
 	// Create an array that will map the sort selection to the query value
-	$sort_methods = array(
+	$sort_methods = [
 		'Question' => 'Q.question_text',
 		'Type' => 'QT.description',
 		'Quiz' => 'Q.id_quiz',
-	);
+	];
+	$orderBy = (string) ($_GET['orderBy'] ?? '');
+	$orderDir = (string) ($_GET['orderDir'] ?? 'up');
 
-	// If sort not set, do so now 
-	if (!isset($_GET['orderBy']))
+	if ($orderBy === '' || !isset($sort_methods[$orderBy]))
 	{
 		$context['SMFQuiz']['orderBy'] = 'Question';
 		$context['SMFQuiz']['orderDir'] = 'up';
 	}
 	else
 	{
-		// Otherwise set the sort query string and reset context
-		$context['SMFQuiz']['orderBy'] = $_GET['orderBy'];
-		if ($_GET['orderDir'] == 'up')
-			$context['SMFQuiz']['orderDir'] = 'down';
-		else
-			$context['SMFQuiz']['orderDir'] = 'up';
+		$context['SMFQuiz']['orderBy'] = $orderBy;
+		$context['SMFQuiz']['orderDir'] = $orderDir === 'up' ? 'down' : 'up';
 	}
 
-	$context['SMFQuiz']['page'] = isset($_GET['page']) ? $_GET['page'] : 1;
+	$context['SMFQuiz']['page'] = (int) ($_GET['page'] ?? 1);
 	GetQuizQuestionCount($quizId);
 	$context['SMFQuiz']['Action'] = 'ShowQuestions';
 	GetAllQuestionDetails($context['SMFQuiz']['page'], $sort_methods[$context['SMFQuiz']['orderBy']], $context['SMFQuiz']['orderDir'], $quizId);
 }
 
-function GetCategoryChildrenData($categoryId)
+/**
+ * Get category children data.
+ *
+ * @param int $categoryId
+ * @return void
+ */
+function GetCategoryChildrenData(int $categoryId): void
 {
 	global $context, $modSettings;
 
 	$pageSize = $modSettings['SMFQuiz_ListPageSizes'];
 
 	// Create an array that will map the sort selection to the query value
-	$sort_methods = array(
+	$sort_methods = [
 		'Name' => 'C.name',
 		'Description' => 'C.description',
 		'Parent' => 'C2.name',
-	);
+	];
+	$orderBy = (string) ($_GET['orderBy'] ?? '');
+	$orderDir = (string) ($_GET['orderDir'] ?? 'up');
 
-	// If sort not set, do so now 
-	if (!isset($_GET['orderBy']))
+	if ($orderBy === '' || !isset($sort_methods[$orderBy]))
 	{
 		$context['SMFQuiz']['orderBy'] = 'Name';
 		$context['SMFQuiz']['orderDir'] = 'up';
 	}
 	else
 	{
-		// Otherwise set the sort query string and reset context
-		$context['SMFQuiz']['orderBy'] = $_GET['orderBy'];
-		if ($_GET['orderDir'] == 'up')
-			$context['SMFQuiz']['orderDir'] = 'down';
-		else
-			$context['SMFQuiz']['orderDir'] = 'up';
+		$context['SMFQuiz']['orderBy'] = $orderBy;
+		$context['SMFQuiz']['orderDir'] = $orderDir === 'up' ? 'down' : 'up';
 	}
 
-	$context['SMFQuiz']['page'] = isset($_GET['page']) ? $_GET['page'] : 1;
+	$context['SMFQuiz']['page'] = (int) ($_GET['page'] ?? 1);
 	GetCategoryCount($categoryId);
 	$context['SMFQuiz']['Action'] = 'ShowCategories';
 	GetCategoryChildren($context['SMFQuiz']['page'], $sort_methods[$context['SMFQuiz']['orderBy']], $context['SMFQuiz']['orderDir'], $pageSize, $categoryId);
 }
 
-function GetParentCategoryData($categoryId)
+/**
+ * Get parent category data.
+ *
+ * @param int $categoryId
+ * @return void
+ */
+function GetParentCategoryData(int $categoryId): void
 {
 	global $context, $modSettings;
 
 	$pageSize = $modSettings['SMFQuiz_ListPageSizes'];
 
 	// Create an array that will map the sort selection to the query value
-	$sort_methods = array(
+	$sort_methods = [
 		'Name' => 'C.name',
 		'Description' => 'C.description',
 		'Parent' => 'C2.name',
-	);
+	];
 
-	// If sort not set, do so now 
-	if (!isset($_GET['orderBy']))
+	$orderBy = (string) ($_GET['orderBy'] ?? '');
+	$orderDir = (string) ($_GET['orderDir'] ?? 'up');
+
+	if ($orderBy === '' || !isset($sort_methods[$orderBy]))
 	{
 		$context['SMFQuiz']['orderBy'] = 'Name';
 		$context['SMFQuiz']['orderDir'] = 'up';
-		
 	}
 	else
 	{
-		// Otherwise set the sort query string and reset context
-		$context['SMFQuiz']['orderBy'] = $_GET['orderBy'];
-		if ($_GET['orderDir'] == 'up')
-			$context['SMFQuiz']['orderDir'] = 'down';
-		else
-			$context['SMFQuiz']['orderDir'] = 'up';
+		$context['SMFQuiz']['orderBy'] = $orderBy;
+		$context['SMFQuiz']['orderDir'] = $orderDir === 'up' ? 'down' : 'up';
 	}
 
-	$context['SMFQuiz']['page'] = isset($_GET['page']) ? $_GET['page'] : 1;
+	$context['SMFQuiz']['page'] = (int) ($_GET['page'] ?? 1);
 
 	GetCategoryCount($categoryId);
 	GetCategoryParent($context['SMFQuiz']['page'], $sort_methods[$context['SMFQuiz']['orderBy']], $context['SMFQuiz']['orderDir'], $pageSize, $categoryId);
 }
 
-function UpdateQuizStatus($id_quiz, $enabled)
+/**
+ * Update quiz status.
+ *
+ * @param int $id_quiz
+ * @param int $enabled
+ * @return void
+ */
+function UpdateQuizStatus(int $id_quiz, int $enabled): void
 {
 	global $smcFunc;
 
@@ -1395,14 +1618,21 @@ function UpdateQuizStatus($id_quiz, $enabled)
 					for_review = 0,
 					updated = {int:updated}
 		WHERE		id_quiz = {int:id_quiz}',
-		array(
+		[
 			'id_quiz' => $id_quiz,
 			'enabled' => $enabled,
 			'updated' => time()
-	));
+	]);
 }
 
-function UpdateQuizLeagueStatus($id_quiz_league, $enabled)
+/**
+ * Update quiz league status.
+ *
+ * @param int $id_quiz_league
+ * @param int $enabled
+ * @return void
+ */
+function UpdateQuizLeagueStatus(int $id_quiz_league, int $enabled): void
 {
 	global $smcFunc;
 
@@ -1413,90 +1643,94 @@ function UpdateQuizLeagueStatus($id_quiz_league, $enabled)
 		SET			state = {int:enabled},
 					updated = {int:updated}
 		WHERE		id_quiz_league = {int:id_quiz_league}',
-		array(
+		[
 			'id_quiz_league' => $id_quiz_league,
 			'enabled' => $enabled,
 			'updated' => time()
-	));
+	]);
 }
 
-function GetQuizesData()
+/**
+ * Get quizes data.
+ *
+ * @return void
+ */
+function GetQuizesData(): void
 {
 	global $context, $scripturl, $smcFunc, $txt, $modSettings, $settings;
 
 	// If user has clicked button to disable quiz
 	if (isset($_GET['disable_quiz_id']))
-		UpdateQuizStatus($_GET['disable_quiz_id'], 0);
+		UpdateQuizStatus((int) ($_GET['disable_quiz_id'] ?? 0), 0);
 
-	// If user has clicked button to enable quiz
 	if (isset($_GET['enable_quiz_id']))
-		UpdateQuizStatus($_GET['enable_quiz_id'], 1);
+		UpdateQuizStatus((int) ($_GET['enable_quiz_id'] ?? 0), 1);
 
-	// If user has clicked button to upload quiz
 	if (isset($_GET['upload_quiz_id']))
-		UploadQuiz($_GET['upload_quiz_id'], 1);
+		UploadQuiz((int) ($_GET['upload_quiz_id'] ?? 0));
 
-	$starts_with = isset($_GET['starts_with']) ? $_GET['starts_with'] : '';
-	$sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'updated';
-	$limit = $modSettings['SMFQuiz_ListPageSizes'];
-	$disabled = isset($_REQUEST['disabled']) ? true : false;
-	$enabled = isset($_REQUEST['enabled']) ? true : false;
-	$forReview = isset($_REQUEST['review']) ? true : false;
+	$starts_with = (string) ($_GET['starts_with'] ?? '');
+	$sort = (string) ($_REQUEST['sort'] ?? 'updated');
+	$limit = (int) $modSettings['SMFQuiz_ListPageSizes'];
+	$disabled = isset($_REQUEST['disabled']);
+	$enabled = isset($_REQUEST['enabled']);
+	$forReview = isset($_REQUEST['review']);
+	$start = (int) ($_GET['start'] ?? 0);
 
-	$queryExtra = $disabled == true ? " AND enabled = 0" : "";
-	$queryExtra .= $enabled == true ? " AND enabled = 1" : "";
-	$queryExtra .= $forReview == true ? " AND for_review = 1" : "";
+	$queryExtra = $disabled ? ' AND enabled = 0' : '';
+	$queryExtra .= $enabled ? ' AND enabled = 1' : '';
+	$queryExtra .= $forReview ? ' AND for_review = 1' : '';
 	
 	// Set up the columns...
-	$context['columns'] = array(
+	$context['columns'] = [
 	// @TODO '' => ???
-		'' => array(
+		'' => [
 			'label' => '',
 			'width' => '2'
-		),
-		'image' => array(
+		],
+		'image' => [
 			'label' => 'Image',
 			'width' => '2'
-		),
-		'title' => array(
+		],
+		'title' => [
 			'label' => $txt['SMFQuiz_Common']['Title']
-		),
-		'updated' => array(
+		],
+		'updated' => [
 			'label' => $txt['SMFQuiz_Common']['Updated']
-		),
-		'owner' => array(
+		],
+		'owner' => [
 			'label' => $txt['SMFQuiz_Common']['Owner'],
 			'width' => '25'
-		),
-		'description' => array(
+		],
+		'description' => [
 			'label' => $txt['SMFQuiz_Common']['Description']
-		),
-		'category' => array(
+		],
+		'category' => [
 			'label' => $txt['SMFQuiz_Common']['Category'],
 			'width' => '20',
 			'link_with' => 'website',
-		),
-		'play_limit' => array(
+		],
+		'play_limit' => [
 			'label' => $txt['SMFQuiz_Common']['PlayLimit'],
 			'width' => '20'
-		),
-		'questions' => array(
+		],
+		'questions' => [
 			'label' => $txt['SMFQuiz_Common']['Qs'],
 			'width' => '20'
-		),
-		'seconds' => array(
+		],
+		'seconds' => [
 			'label' => $txt['SMFQuiz_Common']['Secs'],
 			'width' => '20'
-		),
-		'answers' => array(
+		],
+		'answers' => [
 			'label' => $txt['SMFQuiz_Common']['Answers'],
 			'width' => '20'
-		),
-		'enabled' => array(
+		],
+		'enabled' => [
 			'label' => $txt['SMFQuiz_Common']['Functions'],
 			'width' => '20'
-		)
-	);
+		]
+	];
 
 	// Set the filter links
 	$context['letter_links'] = '';
@@ -1508,11 +1742,11 @@ function GetQuizesData()
 	{
 		$context['columns'][$col]['href'] = $scripturl . '?action=admin;area=quiz;sa=quizes;starts_with=' . $starts_with . ';sort=' . $col . ';start=0';
 
-		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col != $sort && !empty($column_details['default_sort_rev'])))
+		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col !== $sort && !empty($column_details['default_sort_rev'])))
 			$context['columns'][$col]['href'] .= ';desc';
 
 		$context['columns'][$col]['link'] = '<a href="' . $context['columns'][$col]['href'] . '" rel="nofollow">' . $context['columns'][$col]['label'] . '</a>';
-		$context['columns'][$col]['selected'] = $sort == $col;
+		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
 	$context['sort_by'] = $sort;
@@ -1524,60 +1758,69 @@ function GetQuizesData()
 	$context['letter_links'] .= '<a href="' . $scripturl . '?action=admin;area=quiz;sa=quizes;review"><img src="' . $settings['default_images_url'] . '/quiz_images/review.png" alt="for review" title="for review" align="top" /></a> ';
 
 	// List out the different sorting methods...
-	$sort_methods = array(
-		'title' => array(
+	$sort_methods = [
+		'title' => [
 			'down' => 'title DESC',
 			'up' => 'title ASC'
-		),
-		'updated' => array(
+		],
+		'updated' => [
 			'down' => 'updated ASC',
 			'up' => 'updated DESC'
-		),
-		'owner' => array(
+		],
+		'owner' => [
 			'down' => 'real_name DESC',
 			'up' => 'real_name ASC'
-		),
-		'description' => array(
+		],
+		'description' => [
 			'down' => 'description DESC',
 			'up' => 'description ASC'
-		),
-		'category' => array(
+		],
+		'category' => [
 			'down' => 'category_name DESC',
 			'up' => 'category_name ASC'
-		),
-		'play_limit' => array(
+		],
+		'play_limit' => [
 			'down' => 'play_limit DESC',
 			'up' => 'play_limit ASC'
-		),
-		'questions' => array(
+		],
+		'questions' => [
 			'down' => 'questions_per_session DESC',
 			'up' => 'questions_per_session ASC'
-		),
-		'seconds' => array(
+		],
+		'seconds' => [
 			'down' => 'seconds_per_question DESC',
 			'up' => 'seconds_per_question ASC'
-		),
-		'answers' => array(
+		],
+		'answers' => [
 			'down' => 'show_answers DESC',
 			'up' => 'show_answers ASC'
-		),
-		'enabled' => array(
+		],
+		'enabled' => [
 			'down' => 'enabled DESC',
 			'up' => 'enabled ASC'
-		),
-		'for_review' => array(
+		],
+		'for_review' => [
 			'down' => 'for_review DESC',
 			'up' => 'for_review ASC'
-		)
-	);
+		]
+	];
 
-	$query_parameters = array(
+	if (!isset($sort_methods[$sort]))
+		$sort = 'updated';
+
+	if (!isset($sort_methods[$sort]))
+		$sort = 'updated';
+
+	if (!isset($sort_methods[$sort]))
+		$sort = 'result_date';
+
+	$query_parameters = [
 		'sort' => $sort_methods[$sort][$context['sort_direction']],
 		'starts_with' => strtoupper($starts_with) . '%',
 		'limit' => $limit,
-		'start' => isset($_GET['start']) ? $_GET['start'] : 0,
+		'start' => $start,
 		'queryExtra' => $queryExtra
-	);
+	];
 
 	$request = $smcFunc['db_query']('', '
 		SELECT COUNT(*)
@@ -1589,11 +1832,11 @@ function GetQuizesData()
 	$smcFunc['db_free_result']($request);
 
 	// Construct the page index.
-	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=quizes;starts_with=' . $starts_with . ';sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : '') . (isset($_REQUEST['disabled']) ? ';disabled' : '') . (isset($_REQUEST['enabled']) ? ';enabled' : '') . (isset($_REQUEST['review']) ? ';review' : ''), $_REQUEST['start'], $context['num_quizes'], $limit);
+	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=quizes;starts_with=' . $starts_with . ';sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : '') . (isset($_REQUEST['disabled']) ? ';disabled' : '') . (isset($_REQUEST['enabled']) ? ';enabled' : '') . (isset($_REQUEST['review']) ? ';review' : ''), $start, $context['num_quizes'], $limit);
 
 	// Send the data to the template.
-	$context['start'] = $_REQUEST['start'] + 1;
-	$context['end'] = min($_REQUEST['start'] + $limit, $context['num_quizes']);
+	$context['start'] = $start + 1;
+	$context['end'] = min($start + $limit, $context['num_quizes']);
 
 	// @TODO query
 	$result = $smcFunc['db_query']('', '
@@ -1641,7 +1884,7 @@ function GetQuizesData()
 		$query_parameters
 	);
 
-	$context['SMFQuiz']['quizes'] = Array();
+	$context['SMFQuiz']['quizes'] = [];
 	while ($row = $smcFunc['db_fetch_assoc']($result))
 		$context['SMFQuiz']['quizes'][] = $row;
 
@@ -1650,7 +1893,12 @@ function GetQuizesData()
 	$context['SMFQuiz']['Action'] = 'quizes';
 }
 
-function GetShowDisputesData()
+/**
+ * Get show disputes data.
+ *
+ * @return void
+ */
+function GetShowDisputesData(): void
 {
 	global $context, $scripturl, $smcFunc, $txt, $modSettings, $settings, $boardurl;
 
@@ -1721,83 +1969,84 @@ function GetShowDisputesData()
 		// ]]></script>
 	';
 
-	$starts_with = isset($_GET['starts_with']) ? $_GET['starts_with'] : '';
-	$sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'updated';
-	$limit = $modSettings['SMFQuiz_ListPageSizes'];
+	$starts_with = (string) ($_GET['starts_with'] ?? '');
+	$sort = (string) ($_REQUEST['sort'] ?? 'updated');
+	$limit = (int) $modSettings['SMFQuiz_ListPageSizes'];
+	$start = (int) ($_GET['start'] ?? 0);
 
 	// Set up the columns...
-	$context['columns'] = array(
+	$context['columns'] = [
 	// @TODO '' => ???
-		'' => array(
+		'' => [
 			'label' => '',
 			'width' => '2'
-		),
-		'updated' => array(
+		],
+		'updated' => [
 			'label' => $txt['SMFQuiz_Common']['Date']
-		),
-		'member' => array(
+		],
+		'member' => [
 			'label' => $txt['SMFQuiz_Common']['Member'],
 			'width' => '25'
-		),
-		'title' => array(
+		],
+		'title' => [
 			'label' => $txt['SMFQuiz_Common']['Title']
-		),
-		'question_text' => array(
+		],
+		'question_text' => [
 			'label' => $txt['SMFQuiz_Common']['Question']
-		),
-		'reason' => array(
+		],
+		'reason' => [
 			'label' => $txt['SMFQuiz_Common']['Reason']
-		),
-		'function' => array(
+		],
+		'function' => [
 			'label' => '',
 			'width' => '2'
-		)
-	);
+		]
+	];
 
 	// Sort out the column information.
 	foreach ($context['columns'] as $col => $column_details)
 	{
 		$context['columns'][$col]['href'] = $scripturl . '?action=admin;area=quiz;sa=disputes;sort=' . $col . ';start=0';
 
-		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col != $sort && !empty($column_details['default_sort_rev'])))
+		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col !== $sort && !empty($column_details['default_sort_rev'])))
 			$context['columns'][$col]['href'] .= ';desc';
 
 		$context['columns'][$col]['link'] = '<a href="' . $context['columns'][$col]['href'] . '" rel="nofollow">' . $context['columns'][$col]['label'] . '</a>';
-		$context['columns'][$col]['selected'] = $sort == $col;
+		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
 	$context['sort_by'] = $sort;
 	$context['sort_direction'] = !isset($_REQUEST['desc']) ? 'down' : 'up';
 
 	// List out the different sorting methods...
-	$sort_methods = array(
-		'updated' => array(
+	$sort_methods = [
+		'updated' => [
 			'down' => 'updated DESC',
 			'up' => 'updated ASC'
-		),
-		'member' => array(
+		],
+		'member' => [
 			'down' => 'real_name DESC',
 			'up' => 'real_name ASC'
-		),
-		'title' => array(
+		],
+		'title' => [
 			'down' => 'title DESC',
 			'up' => 'title ASC'
-		),
-		'question_text' => array(
+		],
+		'question_text' => [
 			'down' => 'question_text DESC',
 			'up' => 'question_text ASC'
-		),
-		'reason' => array(
+		],
+		'reason' => [
 			'down' => 'reason DESC',
 			'up' => 'reason ASC'
-		)
-	);
+		]
+	];
 
-	$query_parameters = array(
+	$query_parameters = [
 		'sort' => $sort_methods[$sort][$context['sort_direction']],
 		'limit' => $limit,
-		'start' => isset($_GET['start']) ? $_GET['start'] : 0,
-	);
+		'start' => $start,
+	];
 
 	// @TODO query
 	$request = $smcFunc['db_query']('', '
@@ -1815,12 +2064,12 @@ function GetShowDisputesData()
 	$smcFunc['db_free_result']($request);
 
 	// Construct the page index.
-	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=disputes;sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $_REQUEST['start'], $context['num_quizes'], $limit);
+	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=disputes;sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $start, $context['num_quizes'], $limit);
 
 	// Send the data to the template.
 	// @TODO check input?
-	$context['start'] = $_REQUEST['start'] + 1;
-	$context['end'] = min($_REQUEST['start'] + $limit, $context['num_quizes']);
+	$context['start'] = $start + 1;
+	$context['end'] = min($start + $limit, $context['num_quizes']);
 
 	// @TODO query
 	$result = $smcFunc['db_query']('', '
@@ -1845,7 +2094,7 @@ function GetShowDisputesData()
 		$query_parameters
 	);
 
-	$context['SMFQuiz']['disputes'] = Array();
+	$context['SMFQuiz']['disputes'] = [];
 	while ($row = $smcFunc['db_fetch_assoc']($result))
 		$context['SMFQuiz']['disputes'][] = $row;
 
@@ -1854,111 +2103,117 @@ function GetShowDisputesData()
 	$context['SMFQuiz']['Action'] = 'disputes';
 }
 
-function GetShowResultsData()
+/**
+ * Get show results data.
+ *
+ * @return void
+ */
+function GetShowResultsData(): void
 {
 	global $context, $scripturl, $smcFunc, $txt, $modSettings;
 
-	$starts_with = isset($_GET['starts_with']) ? $_GET['starts_with'] : '';
-	$sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'result_date';
-	$limit = $modSettings['SMFQuiz_ListPageSizes'];
+	$starts_with = (string) ($_GET['starts_with'] ?? '');
+	$sort = (string) ($_REQUEST['sort'] ?? 'result_date');
+	$limit = (int) $modSettings['SMFQuiz_ListPageSizes'];
+	$start = (int) ($_GET['start'] ?? 0);
 
 	// Set up the columns...
-	$context['columns'] = array(
+	$context['columns'] = [
 	// @TODO '' => ???
-		'' => array(
+		'' => [
 			'label' => '',
 			'width' => '2'
-		),
-		'result_date' => array(
+		],
+		'result_date' => [
 			'label' => $txt['SMFQuiz_Common']['ResultDate']
-		),
-		'member' => array(
+		],
+		'member' => [
 			'label' => $txt['SMFQuiz_Common']['Member'],
 			'width' => '25'
-		),
-		'title' => array(
+		],
+		'title' => [
 			'label' => $txt['SMFQuiz_Common']['Title']
-		),
-		'questions' => array(
+		],
+		'questions' => [
 			'label' => $txt['SMFQuiz_Common']['Questions']
-		),
-		'correct' => array(
+		],
+		'correct' => [
 			'label' => $txt['SMFQuiz_Common']['Correct']
-		),
-		'incorrect' => array(
+		],
+		'incorrect' => [
 			'label' => $txt['SMFQuiz_Common']['Incorrect']
-		),
-		'timeouts' => array(
+		],
+		'timeouts' => [
 			'label' => $txt['SMFQuiz_Common']['Timeouts']
-		),
-		'total_seconds' => array(
+		],
+		'total_seconds' => [
 			'label' => $txt['SMFQuiz_Common']['Seconds']
-		),
-		'total_resumes' => array(
+		],
+		'total_resumes' => [
 			'label' => $txt['SMFQuiz_Common']['Resumes']
-		)
-	);
+		]
+	];
 
 	// Sort out the column information.
 	foreach ($context['columns'] as $col => $column_details)
 	{
 		$context['columns'][$col]['href'] = $scripturl . '?action=admin;area=quiz;sa=results;sort=' . $col . ';start=0';
 
-		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col != $sort && !empty($column_details['default_sort_rev'])))
+		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col !== $sort && !empty($column_details['default_sort_rev'])))
 			$context['columns'][$col]['href'] .= ';desc';
 
 		$context['columns'][$col]['link'] = '<a href="' . $context['columns'][$col]['href'] . '" rel="nofollow">' . $context['columns'][$col]['label'] . '</a>';
-		$context['columns'][$col]['selected'] = $sort == $col;
+		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
 	$context['sort_by'] = $sort;
 	$context['sort_direction'] = !isset($_REQUEST['desc']) ? 'down' : 'up';
 
 	// List out the different sorting methods...
-	$sort_methods = array(
-		'title' => array(
+	$sort_methods = [
+		'title' => [
 			'down' => 'title DESC',
 			'up' => 'title ASC'
-		),
-		'member' => array(
+		],
+		'member' => [
 			'down' => 'real_name DESC',
 			'up' => 'real_name ASC'
-		),
-		'result_date' => array(
+		],
+		'result_date' => [
 			'down' => 'result_date DESC',
 			'up' => 'result_date ASC'
-		),
-		'questions' => array(
+		],
+		'questions' => [
 			'down' => 'questions DESC',
 			'up' => 'questions ASC'
-		),
-		'correct' => array(
+		],
+		'correct' => [
 			'down' => 'correct DESC',
 			'up' => 'correct ASC'
-		),
-		'incorrect' => array(
+		],
+		'incorrect' => [
 			'down' => 'incorrect DESC',
 			'up' => 'incorrect ASC'
-		),
-		'timeouts' => array(
+		],
+		'timeouts' => [
 			'down' => 'timeouts DESC',
 			'up' => 'timeouts ASC'
-		),
-		'total_seconds' => array(
+		],
+		'total_seconds' => [
 			'down' => 'total_seconds DESC',
 			'up' => 'total_seconds ASC'
-		),
-		'total_resumes' => array(
+		],
+		'total_resumes' => [
 			'down' => 'total_resumes DESC',
 			'up' => 'total_resumes ASC'
-		)
-	);
+		]
+	];
 
-	$query_parameters = array(
+	$query_parameters = [
 		'sort' => $sort_methods[$sort][$context['sort_direction']],
 		'limit' => $limit,
-		'start' => isset($_GET['start']) ? $_GET['start'] : 0,
-	);
+		'start' => $start,
+	];
 
 	$request = $smcFunc['db_query']('', '
 		SELECT 	COUNT(*)
@@ -1969,11 +2224,11 @@ function GetShowResultsData()
 	$smcFunc['db_free_result']($request);
 
 	// Construct the page index.
-	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=results;sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $_REQUEST['start'], $context['num_quizes'], $limit);
+	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=results;sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $start, $context['num_quizes'], $limit);
 
 	// Send the data to the template.
-	$context['start'] = $_REQUEST['start'] + 1;
-	$context['end'] = min($_REQUEST['start'] + $limit, $context['num_quizes']);
+	$context['start'] = $start + 1;
+	$context['end'] = min($start + $limit, $context['num_quizes']);
 
 	// @TODO query
 	$result = $smcFunc['db_query']('', '
@@ -1998,7 +2253,7 @@ function GetShowResultsData()
 		$query_parameters
 	);
 
-	$context['SMFQuiz']['results'] = Array();
+	$context['SMFQuiz']['results'] = [];
 	while ($row = $smcFunc['db_fetch_assoc']($result))
 		$context['SMFQuiz']['results'][] = $row;
 
@@ -2008,16 +2263,22 @@ function GetShowResultsData()
 }
 
 // Function that handles the saving of the specified new quiz league data
-function GetSaveCategoryData()
+/**
+ * Get save category data.
+ *
+ * @return void
+ */
+function GetSaveCategoryData(): void
 {
 	global $context;
 
 	// Retrieve the form values
 	// TODO - Need some validation on front end
-	$name = isset($_POST["name"]) ? $_POST["name"] : '';
-	$description = isset($_POST['description']) ? $_POST['description'] : '';
-	$parent = isset($_POST["parentId"]) ? $_POST["parentId"] : '';
-	$image = isset($_POST['image']) && $_POST['image'] != '-' ? $_POST['image'] : '';	
+	$name = (string) ($_POST['name'] ?? '');
+	$description = (string) ($_POST['description'] ?? '');
+	$parent = (int) ($_POST['parentId'] ?? 0);
+	$image = (string) ($_POST['image'] ?? '');
+	$image = $image !== '-' ? $image : '';
 
 	// Save the data
 	SaveCategory($name, $description, $parent, $image);
@@ -2028,7 +2289,13 @@ function GetSaveCategoryData()
 }
 
 	// @TODO to remove
-function UploadQuiz($id_quiz)
+/**
+ * Upload quiz.
+ *
+ * @param int $id_quiz
+ * @return void
+ */
+function UploadQuiz(int $id_quiz): void
 {
 	global $context, $settings, $txt;
 
@@ -2039,23 +2306,31 @@ function UploadQuiz($id_quiz)
 	$uri     = '/Sources/SMFQuizUpload.php';
 	//$uri     = '/smf2/Sources/SMFQuizUpload.php';
 
-	$post_results = httpFunc('POST',$server,$port,$uri,$content);
+	$post_results = httpFunc('POST', $server, (int) $port, $uri, $content);
 
 	if (!is_string($post_results))
-		$context['SMFQuiz']['uploadResponse'] = '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" />&nbsp;' . $txt['SMFQuizAdmin_Quizes_Page']['QuizUploadError'];
-	else
 	{
-		if (strpos($post_results,'exists'))
-			$context['SMFQuiz']['uploadResponse'] = '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" />&nbsp;' . $txt['SMFQuizAdmin_Quizes_Page']['QuizUploadExists'];
-		else
-		{
-			$context['SMFQuiz']['uploadResponse'] = '<img src="' . $settings['default_images_url'] . '/quiz_images/information.png" alt="yes" title="Information" align="top" />&nbsp;' . $txt['SMFQuizAdmin_Quizes_Page']['QuizUploadedSuccessfully'];
-			upload_images($id_quiz);
-		}
+		$context['SMFQuiz']['uploadResponse'] = '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" />&nbsp;' . $txt['SMFQuizAdmin_Quizes_Page']['QuizUploadError'];
+		return;
 	}
+
+	if (strpos($post_results, 'exists') !== false)
+	{
+		$context['SMFQuiz']['uploadResponse'] = '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" />&nbsp;' . $txt['SMFQuizAdmin_Quizes_Page']['QuizUploadExists'];
+		return;
+	}
+
+	$context['SMFQuiz']['uploadResponse'] = '<img src="' . $settings['default_images_url'] . '/quiz_images/information.png" alt="yes" title="Information" align="top" />&nbsp;' . $txt['SMFQuizAdmin_Quizes_Page']['QuizUploadedSuccessfully'];
+	upload_images($id_quiz);
 }
 
-function upload_images($id_quiz)
+/**
+ * Upload images.
+ *
+ * @param int $id_quiz
+ * @return void
+ */
+function upload_images(int $id_quiz): void
 {
 	global $context, $smcFunc;
 
@@ -2066,9 +2341,9 @@ function upload_images($id_quiz)
 		WHERE 		id_quiz = {int:id_quiz}
 		AND 		!ISNULL(image)
 		AND			image != ""',
-		array (
+		[
 			'id_quiz' => $id_quiz
-		)
+		]
 	);
 
 	$id_questions = '';
@@ -2080,21 +2355,39 @@ function upload_images($id_quiz)
 	$context['SMFQuiz']['uploadResponse'] .= $status;
 }
 
-function load_image($imageFileName)
+/**
+ * Load image.
+ *
+ * @param string $imageFileName
+ * @return string
+ */
+function load_image(string $imageFileName): string
 {
-	global $boarddir, $boarddir;
+	global $boarddir;
 
 	$filename = $boarddir . '/Themes/default/images/quiz_images/Questions/' . $imageFileName;
-	// @TODO check if file exists
-	$handle = fopen($filename, "rb");
-	$contents = fread($handle, filesize($filename));
+	if (!file_exists($filename))
+		return '';
+
+	$handle = fopen($filename, 'rb');
+	if ($handle === false)
+		return '';
+
+	$contents = fread($handle, filesize($filename)) ?: '';
 	fclose($handle);
 
 	return upload_image($contents, $imageFileName);
 }
 
 	// @TODO to remove
-function upload_image($imageString, $imageFileName)
+/**
+ * Upload image.
+ *
+ * @param string $imageString
+ * @param string $imageFileName
+ * @return string
+ */
+function upload_image(string $imageString, string $imageFileName): string
 {
 	global $boarddir, $settings;
 
@@ -2105,31 +2398,47 @@ function upload_image($imageString, $imageFileName)
 	//$uri     = '/smf2/Sources/SMFQuizImageUpload.php?filename=' . $imageFileName;
 	$content = $imageString;
 
-	$get_results = httpFunc('POST',$server,$port,$uri,$content);
-	if (strstr($get_results,'done'))
+	$get_results = httpFunc('POST', $server, (int) $port, $uri, $content);
+	if (is_string($get_results) && strstr($get_results, 'done'))
 		return '<img src="' . $settings['default_images_url'] . '/quiz_images/information.png" alt="yes" title="Information" align="top" /> ' . $imageFileName . ' uploaded successfully';
-	elseif (strstr($get_results,'exists'))
+	elseif (is_string($get_results) && strstr($get_results, 'exists'))
 		return '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" /> ' . $imageFileName . ' already exists on server';
 	else
 		return '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" /> ' . $imageFileName . ' did not upload due to unexpected error (' . $get_results . ')';
 }
 
-function escape($url)
+/**
+ * Escape.
+ *
+ * @param string $url
+ * @return string
+ */
+function escape(string $url): string
 {
 	return str_replace(" ", "%20", $url);
 }
 
-function ImportQuizFile($urlPath, $categoryId, $isEnabled, $image, $fileCount)
+/**
+ * Import quiz file.
+ *
+ * @param string $urlPath
+ * @param int $categoryId
+ * @param string $isEnabled
+ * @param ?string $image
+ * @param int $fileCount
+ * @return void
+ */
+function ImportQuizFile(string $urlPath, int $categoryId, string $isEnabled, ?string $image, int $fileCount): void
 {
 	global $context, $modSettings;
  
-	$isEnabled = $isEnabled == 'on' ? 1 : 0;
-	$image = !empty($image) && $image != '-' ? $image : null;
+	$isEnabled = $isEnabled === 'on' ? 1 : 0;
+	$image = !empty($image) && $image !== '-' ? $image : null;
 	$newUrlPath = escape($urlPath);
 
 	$quizString = load($newUrlPath);
 
-	$creator_id = isset($modSettings['SMFQuiz_ImportQuizesAsUserId']) ? $modSettings['SMFQuiz_ImportQuizesAsUserId'] : 1;
+	$creator_id = (int) ($modSettings['SMFQuiz_ImportQuizesAsUserId'] ?? 1);
 
 	if (!$myxml=simplexml_load_string($quizString))
 		fatal_lang_error('quiz_mod_quiz_already_exists', false);
@@ -2152,42 +2461,45 @@ function ImportQuizFile($urlPath, $categoryId, $isEnabled, $image, $fileCount)
 }
 
 	// @TODO to replace
-function ImportQuizes($quizDetails)
+/**
+ * Import quizes.
+ *
+ * @param array $quizDetails
+ * @return void
+ */
+function ImportQuizes(array $quizDetails): void
 {
 	global $boarddir, $context, $boardurl;
 
 	// Retrieve indexes of files and post values into array
-	$fileIndexesToImport = Array();
-	$fileCategoriesToImport = Array();
-	$fileEnabledToImport = Array();
-	$fileImagesToImport = Array();
+	$fileIndexesToImport = [];
+	$fileCategoriesToImport = [];
+	$fileEnabledToImport = [];
+	$fileImagesToImport = [];
 
-	// Loop through posted values and assing to arrays appropriately
-	foreach($_POST as $key => $value)
+	foreach ($_POST as $key => $value)
 	{
-		if (substr($key, 0, 4) == 'quiz')
+		$key = (string) $key;
+		$value = (string) $value;
+		if (substr($key, 0, 4) === 'quiz' && $value === 'on')
 		{
-			// Only set this if it was selected on form
-			if ($value == 'on')
-			{
-				$index = substr($key, 4)-1;
-				$fileIndexesToImport[$index] = $index;
-			}
+			$index = (int) substr($key, 4) - 1;
+			$fileIndexesToImport[$index] = $index;
 		}
-		if (substr($key, 0, 16) == 'importCategoryId')
+		if (substr($key, 0, 16) === 'importCategoryId')
 		{
-			$index = substr($key, 16)-1;
-			$fileCategoriesToImport[$index] = $_POST[$key];
+			$index = (int) substr($key, 16) - 1;
+			$fileCategoriesToImport[$index] = (int) ($_POST[$key] ?? 0);
 		}
-		if (substr($key, 0, 8) == 'enableId')
+		if (substr($key, 0, 8) === 'enableId')
 		{
-			$index = substr($key, 8)-1;
-			$fileEnabledToImport[$index] = $_POST[$key];
+			$index = (int) substr($key, 8) - 1;
+			$fileEnabledToImport[$index] = (string) ($_POST[$key] ?? '');
 		}
-		if (substr($key, 0, 5) == 'image')
+		if (substr($key, 0, 5) === 'image')
 		{
-			$index = substr($key, 5)-1;
-			$fileImagesToImport[$index] = $_POST[$key];
+			$index = (int) substr($key, 5) - 1;
+			$fileImagesToImport[$index] = (string) ($_POST[$key] ?? '');
 		}
 	}
 
@@ -2208,7 +2520,12 @@ function ImportQuizes($quizDetails)
 	}
 }
 
-function DeleteQuizImport()
+/**
+ * Delete quiz import.
+ *
+ * @return void
+ */
+function DeleteQuizImport(): void
 {
 	global $boarddir;
 
@@ -2218,9 +2535,9 @@ function DeleteQuizImport()
 	{
 		while (false !== ($file = readdir($handle)))
 		{
-			if ($file != "." && $file != "..")
+			if ($file !== '.' && $file !== '..')
 			{
-				if ($_POST['fileId' . $count] == 'on')
+				if ((string) ($_POST['fileId' . $count] ?? '') === 'on')
 					unlink($path . $file);
 
 				$count++;
@@ -2231,7 +2548,12 @@ function DeleteQuizImport()
 }
 
 	// @TODO to replace
-function GetAdminCenterData()
+/**
+ * Get admin center data.
+ *
+ * @return void
+ */
+function GetAdminCenterData(): void
 {
 	global $context;
 /*
@@ -2261,19 +2583,26 @@ function GetAdminCenterData()
 }
 
 	// @TODO to recode with an access to multiple remote servers
-function import_quiz($quizXmlString, $image = 'Default-64.png')
+/**
+ * Import quiz.
+ *
+ * @param string $quizXmlString
+ * @param string $image
+ * @return array
+ */
+function import_quiz(string $quizXmlString, string $image = 'Default-64.png'): array
 {
 	global $modSettings, $user_settings, $settings, $context, $txt, $sourcedir;
 
-	if (empty($quizXmlString))
-		return;
+	if ($quizXmlString === '')
+		return ['successful' => [], 'unsuccessful' => []];
 	// @TODO this function still needs a bit of work
 
 	$installedCategories = get_category_names();
-	$unsuccessful = array();
-	$successful = array();
+	$unsuccessful = [];
+	$successful = [];
 	// These are the only valid image types for SMF.
-	$validImageTypes = array(
+	$validImageTypes = [
 		1 => 'gif',
 		2 => 'jpeg',
 		3 => 'png',
@@ -2283,14 +2612,14 @@ function import_quiz($quizXmlString, $image = 'Default-64.png')
 		8 => 'tiff',
 		9 => 'jpeg',
 		14 => 'iff'
-	);
+	];
 
 	// Only continue if XML is valid
 	require_once($sourcedir . '/Class-Package.php');
 	$quizzes = New xmlArray($quizXmlString);
 
 	if (!$quizzes->exists('quizes'))
-		$unsuccessful[] = array($txt['quiz_mod_unknown_quiz'], 'quiz_mod_error_reading_file');
+		$unsuccessful[] = [$txt['quiz_mod_unknown_quiz'], 'quiz_mod_error_reading_file'];
 	else
 	{
 		foreach ($quizzes->set('quizes/quiz') as $quiz)
@@ -2300,7 +2629,7 @@ function import_quiz($quizXmlString, $image = 'Default-64.png')
 				continue;
 
 			$id_category = 0;
-			$creator_id = isset($modSettings['SMFQuiz_ImportQuizesAsUserId']) ? $modSettings['SMFQuiz_ImportQuizesAsUserId'] : 1;
+			$creator_id = (int) ($modSettings['SMFQuiz_ImportQuizesAsUserId'] ?? 1);
 			$categoryLocator = !empty($installedCategories['name']) && $quiz->exists('categoryName') ? array_search($quiz->fetch('categoryName'), $installedCategories['name']) : '';
 
 			// We have found a matching category, so use this
@@ -2310,7 +2639,7 @@ function import_quiz($quizXmlString, $image = 'Default-64.png')
 			if ($quiz->exists('image'))
 			{
 				$image = $quiz->fetch('image');
-				$disabledFiles = array('con', 'com1', 'com2', 'com3', 'com4', 'prn', 'aux', 'lpt1', '.htaccess', 'index.php');
+				$disabledFiles = ['con', 'com1', 'com2', 'com3', 'com4', 'prn', 'aux', 'lpt1', '.htaccess', 'index.php'];
 				if (in_array(strtolower($image), $disabledFiles))
 					$image = 'quiz_' . $image;
 			}
@@ -2324,7 +2653,7 @@ function import_quiz($quizXmlString, $image = 'Default-64.png')
 					file_put_contents($dest, $imageData);
 					$size = @getimagesize($dest);
 					// Default to png (3)
-					$fileType = isset($validImageTypes[$size[2]]) ? $size[2] : 3;
+					$fileType = $validImageTypes[$size[2]] ?? 3;
 					require_once($sourcedir . '/Subs-Graphics.php');
 					if (!reencodeImage($dest, $fileType))
 					{
@@ -2337,7 +2666,7 @@ function import_quiz($quizXmlString, $image = 'Default-64.png')
 			$newQuizId = ImportQuiz($title, $quiz->fetch('description'), $quiz->fetch('playLimit'), $quiz->fetch('secondsPerQuestion'), $quiz->fetch('showAnswers'), $id_category, 1, $image, $creator_id);
 
 			if (!is_numeric($newQuizId))
-				$unsuccessful[md5($title)] = array($title, 'quiz_mod_quiz_already_exists');
+				$unsuccessful[md5($title)] = [$title, 'quiz_mod_quiz_already_exists'];
 			foreach ($quiz->set('questions/question') as $questions)
 			{
 				$newQuestionId = ImportQuizQuestion($newQuizId, $questions->fetch('questionText'), $questions->fetch('questionTypeId'), $questions->fetch('answerText'), $questions->fetch('image'),  $questions->fetch('imageData'));
@@ -2349,14 +2678,20 @@ function import_quiz($quizXmlString, $image = 'Default-64.png')
 // 			if (!empty($newQuizId))
 // 				import_quiz_images($newQuizId);
 			if (!isset($unsuccessful[md5($title)]))
-				$successful[] = array($title, null);
+				$successful[] = [$title, null];
 		}
 	}
 
-	return array('successful' => $successful, 'unsuccessful' => $unsuccessful);
+	return ['successful' => $successful, 'unsuccessful' => $unsuccessful];
 }
 
-function import_quiz_images($id_quiz)
+/**
+ * Import quiz images.
+ *
+ * @param int $id_quiz
+ * @return void
+ */
+function import_quiz_images(int $id_quiz): void
 {
 	global $smcFunc, $context;
 
@@ -2365,9 +2700,9 @@ function import_quiz_images($id_quiz)
 		FROM {db_prefix}quiz_question
 		WHERE id_quiz = {int:id_quiz}
 			AND !ISNULL(image)',
-		array (
+		[
 			'id_quiz' => $id_quiz
-		)
+		]
 	);
 
 	$id_questions = '';
@@ -2380,7 +2715,13 @@ function import_quiz_images($id_quiz)
 }
 
 	// @TODO to replace
-function import_image($imageFileName)
+/**
+ * Import image.
+ *
+ * @param string $imageFileName
+ * @return string
+ */
+function import_image(string $imageFileName): string
 {
 	global $boarddir, $settings;
 
@@ -2392,7 +2733,7 @@ function import_image($imageFileName)
 	$uri     = '/Themes/default/images/quiz_images/Questions/' . urlencode($imageFileName);
 	$content = 'test';
 
-	$post_results = httpFunc('GET',$server,$port,$uri,$content);
+	$post_results = httpFunc('GET', $server, (int) $port, $uri, $content);
 	if (!is_string($post_results))
 		return '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" /> An unexpected error occurred while importing ' . $imageFileName;
 	elseif (file_exists($outFilePath))
@@ -2401,7 +2742,7 @@ function import_image($imageFileName)
 	{
 		$fileWrite = fopen($outFilePath, 'x');
 	// @TODO check if is_writable
-		if (fwrite( $fileWrite, $post_results ) == false)
+		if (fwrite($fileWrite, $post_results) === false)
 			return '<img src="' . $settings['default_images_url'] . '/quiz_images/warning.png" alt="yes" title="Warning" align="top" /> An unexpected error occurred while importing ' . $imageFileName;
 
 		fclose($fileWrite);
@@ -2409,7 +2750,12 @@ function import_image($imageFileName)
 	return '<img src="' . $settings['default_images_url'] . '/quiz_images/information.png" alt="yes" title="Information" align="top" /> ' . $imageFileName . ' imported successfully';
 }
 
-function get_category_names()
+/**
+ * Get category names.
+ *
+ * @return array
+ */
+function get_category_names(): array
 {
 	global $smcFunc;
 
@@ -2420,7 +2766,7 @@ function get_category_names()
 		FROM 		{db_prefix}quiz_category QC'
 	);
 
-	$categoryNames = Array();
+	$categoryNames = [];
 	while ($row = $smcFunc['db_fetch_assoc']($result))
 	{
 		$categoryNames['id_category'][] = $row['id_category'];
@@ -2433,7 +2779,13 @@ function get_category_names()
 }
 
 	// @TODO to replace
-function save_image($image)
+/**
+ * Save image.
+ *
+ * @param string $image
+ * @return void
+ */
+function save_image(string $image): void
 {
 	global $boarddir;
 
@@ -2445,7 +2797,7 @@ function save_image($image)
 	$uri     = '/Themes/default/images/quiz_images/Quizes/' . urlencode($image);
 	$content = 'test';
 
-	$post_results = httpFunc('GET',$server,$port,$uri,$content);
+	$post_results = httpFunc('GET', $server, (int) $port, $uri, $content);
 	if (!is_string($post_results))
 		die('uh oh, something went wrong');
 	else
@@ -2464,7 +2816,18 @@ function save_image($image)
 // not https.
 //
 	// @TODO still needed?
-function httpFunc($action='GET',$ip=null,$port=80,$uri=null,$content=null,$doHack=false)
+/**
+ * Http func.
+ *
+ * @param string $action
+ * @param ?string $ip
+ * @param int $port
+ * @param ?string $uri
+ * @param ?string $content
+ * @param bool $doHack
+ * @return string|bool
+ */
+function httpFunc(string $action = 'GET', ?string $ip = null, int $port = 80, ?string $uri = null, ?string $content = null, bool $doHack = false): string|bool
 {
 	if (empty($ip))
 		return false;
@@ -2475,7 +2838,7 @@ function httpFunc($action='GET',$ip=null,$port=80,$uri=null,$content=null,$doHac
 	if (empty($content))
 		return false;
 	// generate headers in array.
-	$t   = array();
+	$t   = [];
 	$t[] = $action . ' ' . $uri . ' HTTP/1.1';
 	$t[] = 'Content-Type: text/html';
 	$t[] = 'Host: ' . $ip . ':' . $port;
@@ -2488,7 +2851,7 @@ function httpFunc($action='GET',$ip=null,$port=80,$uri=null,$content=null,$doHac
 	//
 	$fp  = @fsockopen($ip,$port,$errno,$errstr,10);
 	// If we don't have a stream resource, abort.
-	if (!(get_resource_type($fp) == 'stream')) { return false; }
+	if ($fp === false || get_resource_type($fp) !== 'stream') { return false; }
 	//
 	// Send headers and content.
 	//
@@ -2515,14 +2878,21 @@ function httpFunc($action='GET',$ip=null,$port=80,$uri=null,$content=null,$doHac
 // success, false on any errors.
 //
 	// @TODO still needed?
-function parseHttpResponse($content=null,$doHack=false)
+/**
+ * Parse http response.
+ *
+ * @param ?string $content
+ * @param bool $doHack
+ * @return string|bool
+ */
+function parseHttpResponse(?string $content = null, bool $doHack = false): string|bool
 {
 	if (empty($content))
 		return false;
 
 	// Nasty hack for when we are retrieving Quizes to import. For some reason we
 	// get some garbage at the end of the XML
-	if ($doHack==true)
+	if ($doHack === true)
 	{
 		$startPos = strpos($content, "<quiz>");
 		$endPos = strpos($content, "</quiz>");
@@ -2533,7 +2903,7 @@ function parseHttpResponse($content=null,$doHack=false)
 
 	// split into array, headers and content.
 	$hunks = explode("\r\n\r\n",trim($content));
-	if (!is_array($hunks) or count($hunks) < 2)
+	if (!is_array($hunks) || count($hunks) < 2)
 		return false;
 
 	$header  = $hunks[count($hunks) - 2];
@@ -2544,7 +2914,7 @@ function parseHttpResponse($content=null,$doHack=false)
 	unset($header);
 	if (!validateHttpResponse($headers))
 		return false;
-	if (in_array('Transfer-Coding: chunked',$headers))
+	if (in_array('Transfer-Coding: chunked', $headers, true))
 		return trim(unchunkHttpResponse($body));
 	else
 		return trim($body);
@@ -2555,21 +2925,24 @@ function parseHttpResponse($content=null,$doHack=false)
 // headers as argument.  Returns boolean.
 //
 	// @TODO still needed?
-function validateHttpResponse($headers=null)
+/**
+ * Validate http response.
+ *
+ * @param ?array $headers
+ * @return bool
+ */
+function validateHttpResponse(?array $headers = null): bool
 {
-	if (!is_array($headers) or count($headers) < 1)
+	if (!is_array($headers) || count($headers) < 1)
 		return false;
 
-	switch (trim(strtolower($headers[0])))
-	{
-		case 'http/1.0 100 ok':
-		case 'http/1.0 200 ok':
-		case 'http/1.1 100 ok':
-		case 'http/1.1 200 ok':
-				return true;
-		break;
-	}
-	return false;
+	return match (trim(strtolower((string) $headers[0]))) {
+		'http/1.0 100 ok',
+		'http/1.0 200 ok',
+		'http/1.1 100 ok',
+		'http/1.1 200 ok' => true,
+		default => false,
+	};
 }
 
 //
@@ -2578,9 +2951,15 @@ function validateHttpResponse($headers=null)
 // jbr at ya-right dot com.
 //
 	// @TODO still needed?
-function unchunkHttpResponse($str=null)
+/**
+ * Unchunk http response.
+ *
+ * @param ?string $str
+ * @return string|bool
+ */
+function unchunkHttpResponse(?string $str = null): string|bool
 {
-	if (!is_string($str) or strlen($str) < 1)
+	if (!is_string($str) || strlen($str) < 1)
 		return false;
 
 	$eol = "\r\n";
@@ -2604,14 +2983,19 @@ function unchunkHttpResponse($str=null)
 	return $str;
 }
 	
-function GetQuizImportData()
+/**
+ * Get quiz import data.
+ *
+ * @return void
+ */
+function GetQuizImportData(): void
 {
 	global $context, $scripturl, $modSettings, $smcFunc, $txt, $settings;
 
-	$importResults = array();
+	$importResults = [];
 	// Borrowed from Subs-Post.php
 	// These are the only valid image types for SMF.
-	$validImageTypes = array(
+	$validImageTypes = [
 		1 => 'gif',
 		2 => 'jpeg',
 		3 => 'png',
@@ -2621,7 +3005,7 @@ function GetQuizImportData()
 		8 => 'tiff',
 		9 => 'jpeg',
 		14 => 'iff'
-	);
+	];
 
 	if (!empty($_FILES))
 	{
@@ -2653,10 +3037,10 @@ function GetQuizImportData()
 					save_image($_GET['image']);
 
 				$fileContent = file_get_contents($file);
-				$importResults[$i] = array(
+				$importResults[$i] = [
 					'name' => $_FILES['imported_quiz']['name'][$i],
-					'returns' => import_quiz($fileContent, $imgFile),
-				);
+					'returns' => import_quiz((string) $fileContent, $imgFile),
+				];
 			}
 		}
 
@@ -2666,14 +3050,15 @@ function GetQuizImportData()
 			{
 				if (!empty($quizzes))
 					foreach ($quizzes as $quiz)
-						$context[$key . '_import'][] = str_replace('{FILENAME}', $return['name'], $quiz[0]) . ($key == 'successful' ? '' : ' (' . $txt['quiz_mod_failure_reason'] . ': ' . $txt[$quiz[1]] . ')');
+						$context[$key . '_import'][] = str_replace('{FILENAME}', $return['name'], $quiz[0]) . ($key === 'successful' ? '' : ' (' . $txt['quiz_mod_failure_reason'] . ': ' . $txt[$quiz[1]] . ')');
 			}
 		}
 	}
 /*
-	$starts_with = isset($_GET['starts_with']) ? $_GET['starts_with'] : '';
-	$sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'updated';
-	$limit = $modSettings['SMFQuiz_ListPageSizes'];
+	$starts_with = (string) ($_GET['starts_with'] ?? '');
+	$sort = (string) ($_REQUEST['sort'] ?? 'updated');
+	$limit = (int) $modSettings['SMFQuiz_ListPageSizes'];
+	$start = (int) ($_GET['start'] ?? 0);
 	$start = isset($_REQUEST['start']) ? $_REQUEST['start'] : 1;
 	$hide_imported = isset($_REQUEST['hide_imported']) ? $_REQUEST['hide_imported'] : false;
 
@@ -2708,11 +3093,11 @@ function GetQuizImportData()
 	{
 		$context['columns'][$col]['href'] = $scripturl . '?action=admin;area=quiz;sa=quizimporter;hide_imported=' . $hide_imported . ';starts_with=' . $starts_with . ';sort=' . $col . ';start=0';
 
-		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col != $sort && !empty($column_details['default_sort_rev'])))
+		if ((!isset($_REQUEST['desc']) && $col == $sort) || ($col !== $sort && !empty($column_details['default_sort_rev'])))
 			$context['columns'][$col]['href'] .= ';desc';
 
 		$context['columns'][$col]['link'] = '<a href="' . $context['columns'][$col]['href'] . '" rel="nofollow">' . $context['columns'][$col]['label'] . '</a>';
-		$context['columns'][$col]['selected'] = $sort == $col;
+		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
 	$context['sort_by'] = $sort;
@@ -2739,7 +3124,7 @@ function GetQuizImportData()
 
 	// Construct the page index.
 	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=quizimporter;starts_with=' . $starts_with . ';hide_imported=' . $hide_imported . ';sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $start, $context['num_quizes'], $limit);
-	$hide_imported == 0 ? $hideText = 'hide imported' :  $hideText = 'show imported';
+	$hide_imported === 0 ? $hideText = 'hide imported' :  $hideText = 'show imported';
 	$context['hide_imported'] = '[<b><a href="' . $scripturl . '?action=admin;area=quiz;sa=quizimporter;hide_imported=' . !$hide_imported . ';starts_with=' . $starts_with . ';sort=' . $sort . ';start=' . $start . '">' . $hideText . ' </a></b>]';
 
 	// Set the filter links
@@ -2762,7 +3147,13 @@ function GetQuizImportData()
 }
 
 // TODO
-function format_string2($stringToFormat)
+/**
+ * Format string2.
+ *
+ * @param string $stringToFormat
+ * @return string
+ */
+function format_string2(string $stringToFormat): string
 {
 	global $smcFunc;
 
@@ -2772,7 +3163,13 @@ function format_string2($stringToFormat)
 	return html_entity_decode($returnString, ENT_QUOTES, 'UTF-8');
 }
 
-function BuildQuizXml($id_quiz)
+/**
+ * Build quiz xml.
+ *
+ * @param int $id_quiz
+ * @return string
+ */
+function BuildQuizXml(int $id_quiz): string
 {
 	global $context, $modSettings, $user_settings, $settings;
 
@@ -2838,7 +3235,7 @@ function BuildQuizXml($id_quiz)
 	$quizXml .= "
 			</quizes>
 	";
-	return ($quizXml);
+	return $quizXml;
 }
 
 ?>
