@@ -462,9 +462,7 @@ function GetQuestionData(): void
 {
 	global $txt, $context;
 
-	$context['SMFQuiz']['id_quiz'] = isset($_POST['id_quiz'])
-		? (int) ($_POST['id_quiz'] ?? 0)
-		: (isset($_GET['id_quiz']) ? (int) ($_GET['id_quiz'] ?? 0) : 0);
+	$context['SMFQuiz']['id_quiz'] = (int) ($_POST['id_quiz'] ?? $_GET['id_quiz'] ?? 0);
 
 	// If QuestionAction has been set it means the user has clicked on one of the buttons
 	if (isset($_POST['NewQuestion'])) // User wants to create a new Question
@@ -1060,7 +1058,7 @@ function GetUpdateQuizData(): void
 	UpdateQuiz($quizId, $title, $description, $limit, $seconds, $showanswers, $image, $categoryId, $oldCategoryId, $enabled, $for_review);
 
 	// If the user wants to add questions after saving the quiz we need to output the appropriate page which is dictated by these context values
-	if (!empty($_POST['UpdateQuizAndAddQuestions']))
+	if (isset($_POST['UpdateQuizAndAddQuestions']))
 	{
 		$context['current_subaction'] = 'questions';
 		$context['SMFQuiz']['Action'] = 'NewQuestion';
@@ -1749,8 +1747,9 @@ function GetQuizesData(): void
 		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
+	$hasDesc = isset($_REQUEST['desc']);
 	$context['sort_by'] = $sort;
-	$context['sort_direction'] = !isset($_REQUEST['desc']) ? 'up' : 'down';
+	$context['sort_direction'] = $hasDesc ? 'down' : 'up';
 
 	$context['letter_links'] .= '<a href="' . $scripturl . '?action=admin;area=quiz;sa=quizes;">*</a> ';
 	$context['letter_links'] .= '<a href="' . $scripturl . '?action=admin;area=quiz;sa=quizes;enabled"><img src="' . $settings['default_images_url'] . '/quiz_images/unlock.png" alt="enabled" title="enabled" align="top" /></a> ';
@@ -1808,6 +1807,7 @@ function GetQuizesData(): void
 	if (!isset($sort_methods[$sort]))
 		$sort = 'updated';
 
+
 	if (!isset($sort_methods[$sort]))
 		$sort = 'updated';
 
@@ -1832,7 +1832,11 @@ function GetQuizesData(): void
 	$smcFunc['db_free_result']($request);
 
 	// Construct the page index.
-	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=quizes;starts_with=' . $starts_with . ';sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : '') . (isset($_REQUEST['disabled']) ? ';disabled' : '') . (isset($_REQUEST['enabled']) ? ';enabled' : '') . (isset($_REQUEST['review']) ? ';review' : ''), $start, $context['num_quizes'], $limit);
+	$descSuffix = $hasDesc ? ';desc' : '';
+	$disabledSuffix = $disabled ? ';disabled' : '';
+	$enabledSuffix = $enabled ? ';enabled' : '';
+	$reviewSuffix = $forReview ? ';review' : '';
+	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=quizes;starts_with=' . $starts_with . ';sort=' . $sort . $descSuffix . $disabledSuffix . $enabledSuffix . $reviewSuffix, $start, $context['num_quizes'], $limit);
 
 	// Send the data to the template.
 	$context['start'] = $start + 1;
@@ -2015,8 +2019,9 @@ function GetShowDisputesData(): void
 		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
+	$hasDesc = isset($_REQUEST['desc']);
 	$context['sort_by'] = $sort;
-	$context['sort_direction'] = !isset($_REQUEST['desc']) ? 'down' : 'up';
+	$context['sort_direction'] = $hasDesc ? 'up' : 'down';
 
 	// List out the different sorting methods...
 	$sort_methods = [
@@ -2064,7 +2069,8 @@ function GetShowDisputesData(): void
 	$smcFunc['db_free_result']($request);
 
 	// Construct the page index.
-	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=disputes;sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $start, $context['num_quizes'], $limit);
+	$descSuffix = $hasDesc ? ';desc' : '';
+	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=disputes;sort=' . $sort . $descSuffix, $start, $context['num_quizes'], $limit);
 
 	// Send the data to the template.
 	// @TODO check input?
@@ -2166,8 +2172,9 @@ function GetShowResultsData(): void
 		$context['columns'][$col]['selected'] = $sort === $col;
 	}
 
+	$hasDesc = isset($_REQUEST['desc']);
 	$context['sort_by'] = $sort;
-	$context['sort_direction'] = !isset($_REQUEST['desc']) ? 'down' : 'up';
+	$context['sort_direction'] = $hasDesc ? 'up' : 'down';
 
 	// List out the different sorting methods...
 	$sort_methods = [
@@ -2224,7 +2231,8 @@ function GetShowResultsData(): void
 	$smcFunc['db_free_result']($request);
 
 	// Construct the page index.
-	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=results;sort=' . $sort . (isset($_REQUEST['desc']) ? ';desc' : ''), $start, $context['num_quizes'], $limit);
+	$descSuffix = $hasDesc ? ';desc' : '';
+	$context['page_index'] = constructPageIndex($scripturl . '?action=admin;area=quiz;sa=results;sort=' . $sort . $descSuffix, $start, $context['num_quizes'], $limit);
 
 	// Send the data to the template.
 	$context['start'] = $start + 1;
@@ -3034,7 +3042,7 @@ function GetQuizImportData(): void
 			if (!empty($file))
 			{
 				if (isset($_GET['image']))
-					save_image($_GET['image']);
+					save_image((string) ($_GET['image'] ?? ''));
 
 				$fileContent = file_get_contents($file);
 				$importResults[$i] = [
