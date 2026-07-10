@@ -6,6 +6,8 @@ if (!defined('SMF')) {
     die('Hacking attempt...');
 }
 
+require_once(__DIR__ . '/Utils.php');
+
 /**
  * Finalise a completed quiz play session.
  *
@@ -30,7 +32,7 @@ function endQuiz(): void
     $idQuiz       = max(0, (int)($_GET['id_quiz'] ?? 0));
     $idUser       = (int)$context['user']['id'];
     $name         = (string)$context['user']['name'];
-    $idSession    = preg_replace('/[^0-9a-f]/i', '', (string)($_GET['id_session'] ?? ''));
+    $idSession    = quiz_sanitize_session_token((string)($_GET['id_session'] ?? ''));
     $questions    = max(0, (int)($_GET['questions'] ?? 0));
     $correct      = max(0, (int)($_GET['correct'] ?? 0));
     $incorrect    = max(0, (int)($_GET['incorrect'] ?? 0));

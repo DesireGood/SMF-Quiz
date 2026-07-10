@@ -64,11 +64,7 @@ final class ValidationService
 
         $value = (string)$input[$key];
 
-        if (function_exists('un_htmlspecialchars')) {
-            $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-        } else {
-            $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-        }
+        $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
         if ($maxLength > 0) {
             $value = mb_substr($value, 0, $maxLength);
@@ -164,5 +160,21 @@ final class ValidationService
             throw new \InvalidArgumentException('Invalid session token.');
         }
         return $token;
+    }
+
+    /**
+     * Sanitise a session token from user input.
+     *
+     * Strips all characters except hexadecimal digits. Returns an empty string
+     * when no valid token is present — callers that need a non-empty token should
+     * use requireSessionId() instead.
+     *
+     * @param array<string, mixed> $input Source array
+     * @param string $key Array key to read (default 'id_session')
+     * @return string Sanitised hex token (may be empty)
+     */
+    public function sanitizeSessionToken(array $input, string $key = 'id_session'): string
+    {
+        return preg_replace('/[^0-9a-f]/i', '', (string)($input[$key] ?? '')) ?? '';
     }
 }

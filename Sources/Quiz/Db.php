@@ -2969,4 +2969,7 @@ function CleanQuestions()
 		WHERE 		Q.id_quiz IS NULL'
 	);
 }
+
+// Shared token/utility helpers are in Utils.php; include it where needed.
+require_once(__DIR__ . '/Utils.php');
 ?>

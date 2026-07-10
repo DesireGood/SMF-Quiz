@@ -6,6 +6,8 @@ if (!defined('SMF')) {
     die('Hacking attempt...');
 }
 
+require_once(__DIR__ . '/Utils.php');
+
 /**
  * Update a quiz play session after each answered question.
  *
@@ -34,7 +36,7 @@ function UpdateSession(): void
     $isCorrectRaw = (int)$_GET['is_correct'];
     $outcomeField = $answerMap[$isCorrectRaw] ?? 'timeouts';
 
-    $idSession = preg_replace('/[^0-9a-f]/i', '', (string)$_GET['id_session']);
+    $idSession = quiz_sanitize_session_token((string)$_GET['id_session']);
     $time      = max(0, (int)$_GET['time']);
 
     $smcFunc['db_query']('', '

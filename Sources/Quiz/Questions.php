@@ -6,6 +6,8 @@ if (!defined('SMF')) {
     die('Hacking attempt...');
 }
 
+require_once(__DIR__ . '/Utils.php');
+
 /**
  * Return the next question and its answers during quiz play.
  *
@@ -25,7 +27,7 @@ function quizQuestions(): void
 
     $idQuizLeague  = max(0, (int)($_GET['id_quiz_league'] ?? 0));
     $idQuiz        = max(0, (int)($_GET['id_quiz'] ?? 0));
-    $idSession     = preg_replace('/[^0-9a-f]/i', '', (string)($_GET['id_session'] ?? ''));
+    $idSession     = quiz_sanitize_session_token((string)($_GET['id_session'] ?? ''));
     $questionNum   = max(0, (int)($_GET['questionNum'] ?? 0));
     $updateResumes = !empty($_GET['updateResumes']);
 
