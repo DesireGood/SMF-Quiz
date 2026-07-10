@@ -266,7 +266,38 @@ final class Integration
     private static function createService(string $serviceName): object
     {
         return match ($serviceName) {
-            default => throw new \RuntimeException("Unknown service: {$serviceName}"),
+            'ValidationService' => new \Quiz\Service\ValidationService(),
+            'CategoryService'   => new \Quiz\Service\CategoryService(
+                new \Quiz\Repository\CategoryRepository()
+            ),
+            'QuestionService'   => new \Quiz\Service\QuestionService(
+                new \Quiz\Repository\QuestionRepository()
+            ),
+            'ResultService'     => new \Quiz\Service\ResultService(
+                new \Quiz\Repository\ResultRepository(),
+                new \Quiz\Repository\QuizRepository()
+            ),
+            'QuizService'       => new \Quiz\Service\QuizService(
+                new \Quiz\Repository\QuizRepository(),
+                new \Quiz\Repository\QuestionRepository(),
+                new \Quiz\Repository\ResultRepository()
+            ),
+            'AdminController'   => new \Quiz\Controller\AdminController(
+                self::getService('QuizService'),
+                self::getService('CategoryService'),
+                self::getService('QuestionService'),
+                self::getService('ResultService'),
+                self::getService('ValidationService')
+            ),
+            'QuizController'    => new \Quiz\Controller\QuizController(
+                self::getService('QuizService'),
+                self::getService('CategoryService'),
+                self::getService('QuestionService'),
+                self::getService('ResultService'),
+                self::getService('ValidationService')
+            ),
+            'AjaxController'    => new \Quiz\Controller\AjaxController(),
+            default             => throw new \RuntimeException("Unknown service: {$serviceName}"),
         };
     }
 }

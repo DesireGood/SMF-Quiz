@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 if (!defined('SMF'))
 	die('Hacking attempt...');
 
@@ -26,15 +28,23 @@ function GetCategoryCount($id_category)
 	global $context, $smcFunc;
 
 	if (isset($id_category) && $id_category != 0)
-		$categoryWhereClause = ' WHERE id_category = ' . $id_category;
+	{
+		$result = $smcFunc['db_query']('', '
+			SELECT COUNT(*) CategoryCount
+			FROM {db_prefix}quiz_category
+			WHERE id_category = {int:id_category}',
+			array(
+				'id_category' => (int)$id_category,
+			)
+		);
+	}
 	else
-		$categoryWhereClause = '';
-
-	// @TODO query?
-	$result = $smcFunc['db_query']('', '
-		SELECT COUNT(*) CategoryCount
-		FROM {db_prefix}quiz_category' . $categoryWhereClause
-	);
+	{
+		$result = $smcFunc['db_query']('', '
+			SELECT COUNT(*) CategoryCount
+			FROM {db_prefix}quiz_category'
+		);
+	}
 
 	$context['SMFQuiz']['categoryCount'] = Array();
 	while ($row = $smcFunc['db_fetch_assoc']($result))

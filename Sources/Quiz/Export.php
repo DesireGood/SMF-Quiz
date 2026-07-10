@@ -1,124 +1,112 @@
 <?php
 
-function quizExport()
-{
-	global $sourcedir;
+declare(strict_types=1);
 
-	isAllowedTo('quiz_admin');
-
-	// Include the SMF2 specific database file
-	require_once($sourcedir . '/Quiz/Db.php');
-
-	PackageQuiz();
-	die();
+if (!defined('SMF')) {
+    die('Hacking attempt...');
 }
 
-function PackageQuiz()
+/**
+ * Entry point for the quiz export action.
+ *
+ * Requires quiz_admin permission and streams an XML file for download.
+ *
+ * @return void
+ */
+function quizExport(): void
 {
-	global $context, $modSettings;
-	// Get the key ids for the quizes to package. This function returns a string containing a comma separated list of id's
-	// @TODO check and validate inputs
-	if (empty($_GET['quizIds']))
-		return;
+    global $sourcedir;
 
-	$quizKeys = explode(',', $_GET['quizIds']);
-	$quizKeys = array_map(function($id) { return (int) $id; }, $quizKeys);
-	$quizKeys = array_unique($quizKeys);
+    isAllowedTo('quiz_admin');
+    require_once($sourcedir . '/Quiz/Db.php');
 
-	if (empty($quizKeys))
-		return;
-
-	$packageName = (!empty($_GET['packageName']) ? $_GET['packageName'] : 'NoNameEntered') . '.xml';
-
-// @TODO localization?
-	$packageDescription = 'No description entered';
-	if (!empty($_GET['packageDescription']))
-		$packageDescription = $_GET['packageDescription'];
-
-// @TODO localization?
-	$packageAuthor = 'No author entered';
-	if (!empty($_GET['packageAuthor']))
-		$packageAuthor = $_GET['packageAuthor'];
-
-// @TODO localization?
-	$packageSiteAddress = 'No site entered';
-	if (!empty($_GET['packageSiteAddress']))
-		$packageSiteAddress = $_GET['packageSiteAddress'];
-
-	if (sizeof($quizKeys) > 0)
-	{
-		$quizRows = ExportQuizes($quizKeys);
-		header('Content-Disposition: attachment; filename="' . $packageName . '"');
-		header("Pragma: public");
-		header("Expires: 0");
-		header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
-		echo '<?xml version="1.0" encoding="ISO-8859-1"?>';
-		echo '<quizes>
-				<description>' , $packageDescription , '</description>
-				<author>' , $packageAuthor , '</author>
-				<siteAddress>' , $packageSiteAddress , '</siteAddress>
-				<packageDate>' , date("F j, Y, g:i a", time()) , '</packageDate>
-				<smfQuizVersion>' , $modSettings["SMFQuiz_version"] , '</smfQuizVersion>
-				<smfVersion>' , $modSettings["smfVersion"] , '</smfVersion>
-		';
-
-		foreach ($quizRows as $row)
-		{
-// @TODO double quotes
-			echo " 				
-				<quiz>
-					<title><![CDATA[{$row['title']}]]></title>
-					<categoryName><![CDATA[{$row['category_name']}]]></categoryName>
-					<description><![CDATA[{$row['description']}]]></description>
-					<playLimit>{$row['play_limit']}</playLimit>
-					<secondsPerQuestion>{$row['seconds_per_question']}</secondsPerQuestion>
-					<showAnswers>{$row['show_answers']}</showAnswers>
-					<image><![CDATA[{$row['image']}]]></image>
-					<imageData><![CDATA[{$row['image_data']}]]></imageData>
-					<questions>
-			";
-
-			$quizQuestionRows = ExportQuizQuestions($row['id_quiz']);
-
-// @TODO double quotes
-			foreach ($quizQuestionRows as $questionRow)
-			{
-				echo "
-						<question>
-							<questionText><![CDATA[{$questionRow['question_text']}]]></questionText>
-							<questionTypeId>{$questionRow['id_question_type']}</questionTypeId>
-							<image>{$questionRow['image']}</image>
-							<imageData>{$questionRow['image_data']}</imageData>
-							<answerText><![CDATA[{$questionRow['answer_text']}]]></answerText>
-							<answers>
-				";
-
-				$quizAnswerRows = ExportQuizAnswers($questionRow['id_question']);
-
-// @TODO double quotes
-				foreach ($quizAnswerRows as $answerRow)
-					echo "
-								<answer>
-									<answerText><![CDATA[{$answerRow['answer_text']}]]></answerText>
-									<isCorrect>{$answerRow['is_correct']}</isCorrect>
-								</answer>
-					";
-
-// @TODO double quotes
-				echo "
-							</answers>
-						</question>
-				";
-			}
-
-// @TODO double quotes
-			echo "
-					</questions>
-				</quiz>
-			";
-		}
-
-		echo '</quizes>';
-	}
+    PackageQuiz();
+    die();
 }
-?>
+
+/**
+ * Build and stream an XML export of the selected quizzes.
+ *
+ * Quiz IDs are supplied as a comma-separated list in $_GET['quizIds'].
+ *
+ * @return void
+ */
+function PackageQuiz(): void
+{
+    global $modSettings;
+
+    if (empty($_GET['quizIds'])) {
+        return;
+    }
+
+    $quizKeys = array_unique(array_filter(
+        array_map(
+            static fn(string $id): int => (int)$id,
+            explode(',', (string)$_GET['quizIds'])
+        ),
+        static fn(int $id): bool => $id > 0
+    ));
+
+    if (empty($quizKeys)) {
+        return;
+    }
+
+    $packageName        = preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string)($_GET['packageName'] ?? 'NoNameEntered')) . '.xml';
+    $packageDescription = trim((string)($_GET['packageDescription'] ?? '')) ?: 'No description entered';
+    $packageAuthor      = trim((string)($_GET['packageAuthor'] ?? '')) ?: 'No author entered';
+    $packageSiteAddress = trim((string)($_GET['packageSiteAddress'] ?? '')) ?: 'No site entered';
+
+    $quizRows = ExportQuizes($quizKeys);
+
+    header('Content-Disposition: attachment; filename="' . $packageName . '"');
+    header('Pragma: public');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+    echo '<quizes>' . "\n";
+    echo '  <description><![CDATA[' . $packageDescription . ']]></description>' . "\n";
+    echo '  <author><![CDATA[' . $packageAuthor . ']]></author>' . "\n";
+    echo '  <siteAddress><![CDATA[' . $packageSiteAddress . ']]></siteAddress>' . "\n";
+    echo '  <packageDate>' . date('Y-m-d H:i:s') . '</packageDate>' . "\n";
+    echo '  <smfQuizVersion>' . htmlspecialchars((string)($modSettings['SMFQuiz_version'] ?? ''), ENT_XML1, 'UTF-8') . '</smfQuizVersion>' . "\n";
+    echo '  <smfVersion>' . htmlspecialchars((string)($modSettings['smfVersion'] ?? ''), ENT_XML1, 'UTF-8') . '</smfVersion>' . "\n";
+
+    foreach ($quizRows as $row) {
+        echo '  <quiz>' . "\n";
+        echo '    <title><![CDATA[' . $row['title'] . ']]></title>' . "\n";
+        echo '    <categoryName><![CDATA[' . $row['category_name'] . ']]></categoryName>' . "\n";
+        echo '    <description><![CDATA[' . $row['description'] . ']]></description>' . "\n";
+        echo '    <playLimit>' . (int)$row['play_limit'] . '</playLimit>' . "\n";
+        echo '    <secondsPerQuestion>' . (int)$row['seconds_per_question'] . '</secondsPerQuestion>' . "\n";
+        echo '    <showAnswers>' . (int)$row['show_answers'] . '</showAnswers>' . "\n";
+        echo '    <image><![CDATA[' . $row['image'] . ']]></image>' . "\n";
+        echo '    <imageData><![CDATA[' . $row['image_data'] . ']]></imageData>' . "\n";
+        echo '    <questions>' . "\n";
+
+        foreach (ExportQuizQuestions((int)$row['id_quiz']) as $questionRow) {
+            echo '      <question>' . "\n";
+            echo '        <questionText><![CDATA[' . $questionRow['question_text'] . ']]></questionText>' . "\n";
+            echo '        <questionTypeId>' . (int)$questionRow['id_question_type'] . '</questionTypeId>' . "\n";
+            echo '        <image>' . htmlspecialchars((string)$questionRow['image'], ENT_XML1, 'UTF-8') . '</image>' . "\n";
+            echo '        <imageData>' . htmlspecialchars((string)$questionRow['image_data'], ENT_XML1, 'UTF-8') . '</imageData>' . "\n";
+            echo '        <answerText><![CDATA[' . $questionRow['answer_text'] . ']]></answerText>' . "\n";
+            echo '        <answers>' . "\n";
+
+            foreach (ExportQuizAnswers((int)$questionRow['id_question']) as $answerRow) {
+                echo '          <answer>' . "\n";
+                echo '            <answerText><![CDATA[' . $answerRow['answer_text'] . ']]></answerText>' . "\n";
+                echo '            <isCorrect>' . (int)$answerRow['is_correct'] . '</isCorrect>' . "\n";
+                echo '          </answer>' . "\n";
+            }
+
+            echo '        </answers>' . "\n";
+            echo '      </question>' . "\n";
+        }
+
+        echo '    </questions>' . "\n";
+        echo '  </quiz>' . "\n";
+    }
+
+    echo '</quizes>' . "\n";
+}

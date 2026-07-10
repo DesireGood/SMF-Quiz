@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 if (!defined('SMF'))
 	die('Hacking attempt...');
 
 // Include the SMF2 specific database file
-// @TODO move into the function/s
 require_once($sourcedir . '/Quiz/Db.php');
 
 function SMFQuiz()
