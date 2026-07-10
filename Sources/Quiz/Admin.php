@@ -1808,12 +1808,6 @@ function GetQuizesData(): void
 		$sort = 'updated';
 
 
-	if (!isset($sort_methods[$sort]))
-		$sort = 'updated';
-
-	if (!isset($sort_methods[$sort]))
-		$sort = 'result_date';
-
 	$query_parameters = [
 		'sort' => $sort_methods[$sort][$context['sort_direction']],
 		'starts_with' => strtoupper($starts_with) . '%',
@@ -2047,6 +2041,9 @@ function GetShowDisputesData(): void
 		]
 	];
 
+	if (!isset($sort_methods[$sort]))
+		$sort = 'updated';
+
 	$query_parameters = [
 		'sort' => $sort_methods[$sort][$context['sort_direction']],
 		'limit' => $limit,
@@ -2215,6 +2212,9 @@ function GetShowResultsData(): void
 			'up' => 'total_resumes ASC'
 		]
 	];
+
+	if (!isset($sort_methods[$sort]))
+		$sort = 'result_date';
 
 	$query_parameters = [
 		'sort' => $sort_methods[$sort][$context['sort_direction']],
@@ -3147,7 +3147,7 @@ function GetQuizImportData(): void
 		FROM 		{db_prefix}quiz Q'
 	);
 
-	$context['SMFQuiz']['quizTitles'] = Array();
+	$context['SMFQuiz']['quizTitles'] = [];
 	while ($row = $smcFunc['db_fetch_assoc']($result))
 		$context['SMFQuiz']['quizTitles'][] = format_string2($row['title']);
 

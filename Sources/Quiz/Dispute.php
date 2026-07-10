@@ -15,7 +15,8 @@ function quizDispute(): void
 
     $idQuizQuestion = (int) ($_GET['id_quiz_question'] ?? 0);
     $idQuiz = (int) ($_GET['id_quiz'] ?? 0);
-    $reason = isset($_GET['reason']) ? $smcFunc['htmlspecialchars']((string) $_GET['reason'], ENT_QUOTES) : '';
+    $rawReason = (string) ($_GET['reason'] ?? '');
+    $reason = $rawReason !== '' ? $smcFunc['htmlspecialchars']($rawReason, ENT_QUOTES) : '';
     $idUser = (int) ($context['user']['id'] ?? 0);
     $idDispute = (int) ($_GET['id_dispute'] ?? 0);
 
