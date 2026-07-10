@@ -1,110 +1,108 @@
 <?php
+declare(strict_types=1);
 
-if (!defined('SMF'))
+if (!defined('SMF')) {
 	die('Hacking attempt...');
+}
 
-function endQuiz()
+/**
+ * Finalizes a quiz or quiz league session.
+ */
+function endQuiz(): void
 {
 	global $boardurl, $context;
 
-	if (!allowedTo('quiz_play'))
-	{
-		// @TODO implement an error handling
+	if (!allowedTo('quiz_play')) {
 		$context['quiz_error'] = 'cannot_play';
 		die();
 	}
 
-	// Get passed variables from client
-	// @TODO sanitize
-	// @TODO move a lot to template
-	// @TODO permission check needed
-	$id_quiz_league = isset($_GET["id_quiz_league"]) ? (int) $_GET["id_quiz_league"] : 0;
-	$id_quiz = isset($_GET["id_quiz"]) ? (int) $_GET["id_quiz"] : 0;
-	$id_user = $context['user']['id'];
-	$name = $context['user']['name'];
-	$id_session = isset($_GET["id_session"]) ? $_GET["id_session"] : '';
-	$questions = isset($_GET["questions"]) ? (int) $_GET["questions"] : 0;
-	$correct = isset($_GET["correct"]) ? (int) $_GET["correct"] : 0;
-	$incorrect = isset($_GET["incorrect"]) ? (int) $_GET["incorrect"] : 0;
-	$timeouts = isset($_GET["timeouts"]) ? (int) $_GET["timeouts"] : 0;
-	$total_seconds = isset($_GET["total_seconds"]) ? (int) $_GET["total_seconds"] : 0;
-	$creatorId = isset($_GET["creator_id"]) ? (int) $_GET["creator_id"] : 0;
-	$points = isset($_GET["points"]) ?(int)  $_GET["points"] : 0;
-	$round = isset($_GET["round"]) ? (int) $_GET["round"] : 0;
-	$totalResumes = isset($_GET["totalResumes"]) ? (int) $_GET["totalResumes"] : 0;
+	$id_quiz_league = (int) ($_GET['id_quiz_league'] ?? 0);
+	$id_quiz = (int) ($_GET['id_quiz'] ?? 0);
+	$id_user = (int) ($context['user']['id'] ?? 0);
+	$name = (string) ($context['user']['name'] ?? '');
+	$id_session = (string) ($_GET['id_session'] ?? '');
+	$questions = (int) ($_GET['questions'] ?? 0);
+	$correct = (int) ($_GET['correct'] ?? 0);
+	$incorrect = (int) ($_GET['incorrect'] ?? 0);
+	$timeouts = (int) ($_GET['timeouts'] ?? 0);
+	$total_seconds = (int) ($_GET['total_seconds'] ?? 0);
+	$creatorId = (int) ($_GET['creator_id'] ?? 0);
+	$points = (int) ($_GET['points'] ?? 0);
+	$round = (int) ($_GET['round'] ?? 0);
+	$totalResumes = (int) ($_GET['totalResumes'] ?? 0);
 
-	// Load the language file
 	loadLanguage('Quiz/Quiz');
 
-	if (!empty($id_quiz))
-	{
-		// Don't make these changes if the user playing is the creator of the quiz, only kill the session
-		if ($creatorId != $id_user)
-		{
-			// Only add result if one doesn't already exist for this user and quiz
-			if (CheckResultExists($id_quiz, $id_user) == false)
-			{
-				InsertQuizEnd($id_quiz, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $totalResumes);
-				UpdateQuiz($id_quiz, $questions, $correct, $total_seconds, $id_user, $name);
-				call_integration_hook('integrate_quiz_result', array($id_quiz, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $totalResumes));
-			}
+	if ($id_quiz !== 0) {
+		if ($creatorId !== $id_user && CheckResultExists($id_quiz, $id_user) === false) {
+			InsertQuizEnd($id_quiz, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $totalResumes);
+			UpdateQuiz($id_quiz, $questions, $correct, $total_seconds, $id_user, $name);
+			call_integration_hook('integrate_quiz_result', [$id_quiz, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $totalResumes]);
 		}
-	}
-	elseif (!empty($id_quiz_league))
+	} elseif ($id_quiz_league !== 0) {
 		InsertQuizLeagueEnd($id_quiz_league, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $points, $round, $total_seconds, $name);
-		call_integration_hook('integrate_quiz_league_result', array($id_quiz_league, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $points, $round, $total_seconds, $name));
+		call_integration_hook('integrate_quiz_league_result', [$id_quiz_league, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $points, $round, $total_seconds, $name]);
+	}
 
 	EndSession($id_session);
 
-	// Just write out some arbitrary XML for the client
-	header("Content-Type: text/xml");
+	header('Content-Type: text/xml');
 	echo '<xml/>';
 	die();
 }
 
-/*
-Check whether the specified quiz result already has an entry. We also check
-whether the quiz is enabled here, as we don't want results being submitted
-if the quiz is not enabled
-*/
-function CheckResultExists($id_quiz, $id_user)
+/**
+ * Checks whether a quiz result already exists or the quiz is disabled.
+ *
+ * @param int $id_quiz Quiz ID.
+ * @param int $id_user Member ID.
+ * @return bool
+ */
+function CheckResultExists(int $id_quiz, int $id_user): bool
 {
 	global $smcFunc;
 
-	$result = $smcFunc['db_query']('','
+	$result = $smcFunc['db_query']('', '
 		SELECT id_quiz_result
 		FROM {db_prefix}quiz_result QR
 		RIGHT JOIN {db_prefix}quiz Q
 			ON QR.id_quiz = Q.id_quiz
 		WHERE (QR.id_quiz = {int:id_quiz} AND QR.id_user = {int:id_user})
 			OR (Q.id_quiz = {int:id_quiz} AND Q.enabled = {int:quiz_disabled})',
-		array(
+		[
 			'id_quiz' => $id_quiz,
 			'id_user' => $id_user,
-			'quiz_disabled' => 0
-		)
+			'quiz_disabled' => 0,
+		]
 	);
 
 	$count = $smcFunc['db_num_rows']($result);
-
 	$smcFunc['db_free_result']($result);
 
-	if ($count > 0)
-		return true;
-	else
-		return false;
+	return $count > 0;
 }
 
-function InsertQuizEnd($id_quiz, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $totalResumes)
+/**
+ * Inserts a finished quiz result.
+ *
+ * @param int $id_quiz Quiz ID.
+ * @param int $id_user Member ID.
+ * @param int $questions Questions answered.
+ * @param int $correct Correct answers.
+ * @param int $incorrect Incorrect answers.
+ * @param int $timeouts Timeout count.
+ * @param int $total_seconds Total elapsed seconds.
+ * @param int $totalResumes Resume count.
+ */
+function InsertQuizEnd(int $id_quiz, int $id_user, int $questions, int $correct, int $incorrect, int $timeouts, int $total_seconds, int $totalResumes): void
 {
 	global $smcFunc, $db_prefix;
 
 	$result_date = time();
-
-	// Create a session for this quiz play in the database
-	$smcFunc['db_insert']('', 
+	$smcFunc['db_insert']('',
 		'{db_prefix}quiz_result',
-		array(
+		[
 			'id_quiz' => 'int',
 			'id_user' => 'int',
 			'result_date' => 'int',
@@ -114,8 +112,8 @@ function InsertQuizEnd($id_quiz, $id_user, $questions, $correct, $incorrect, $ti
 			'timeouts' => 'int',
 			'total_seconds' => 'int',
 			'total_resumes' => 'int',
-		),
-		array(
+		],
+		[
 			$id_quiz,
 			$id_user,
 			$result_date,
@@ -125,33 +123,45 @@ function InsertQuizEnd($id_quiz, $id_user, $questions, $correct, $incorrect, $ti
 			$timeouts,
 			$total_seconds,
 			$totalResumes,
-		),
-		array(
-			'id_quiz_result'
-		)
+		],
+		[
+			'id_quiz_result',
+		]
 	);
 }
 
-// @TODO is a function really necessary?
-function EndSession($id_session)
+/**
+ * Deletes an active quiz session.
+ *
+ * @param string $id_session Session ID.
+ */
+function EndSession(string $id_session): void
 {
 	global $smcFunc;
 
-	// Create a session for this quiz play in the database
 	$smcFunc['db_query']('', '
 		DELETE FROM {db_prefix}quiz_session
 		WHERE id_quiz_session = {string:id_session}',
-		array(
+		[
 			'id_session' => $id_session,
-		)
+		]
 	);
 }
 
-function UpdateQuiz($id_quiz, $questions, $correct, $total_seconds, $id_user, $name)
+/**
+ * Updates aggregate quiz statistics and top score state.
+ *
+ * @param int $id_quiz Quiz ID.
+ * @param int $questions Questions answered.
+ * @param int $correct Correct answers.
+ * @param int $total_seconds Total elapsed seconds.
+ * @param int $id_user Member ID.
+ * @param string $name Member display name.
+ */
+function UpdateQuiz(int $id_quiz, int $questions, int $correct, int $total_seconds, int $id_user, string $name): void
 {
 	global $smcFunc, $db_prefix, $scripturl, $sourcedir, $modSettings, $settings, $user_settings;
 
-	// Retrieve quiz info and top score
 	$quizTopResult = $smcFunc['db_query']('', '
 		SELECT Q.top_correct, Q.top_time, Q.top_user_id,
 			Q.title, Q.image, M.real_name
@@ -159,45 +169,44 @@ function UpdateQuiz($id_quiz, $questions, $correct, $total_seconds, $id_user, $n
 		LEFT JOIN {db_prefix}members M
 			ON M.id_member = Q.top_user_id
 		WHERE id_quiz = {int:id_quiz}',
-		array(
+		[
 			'id_quiz' => $id_quiz,
-		)
+		]
 	);
 
-	// Coming in next release
-	$total_points = 0; 
+	$total_points = 0;
 	$top_points = 0;
-
-	// Set defaults
 	$quizTitle = '';
 	$quizImage = $settings['default_images_url'] . '/quiz_images/Quizes/Default-64.png';
 	$topScore = false;
+	$top_correct = 0;
+	$top_id_user = 0;
+	$top_user_name = '';
+	$top_time = 0;
 
-	// Retrieve quiz info and top score
 	$rows = $smcFunc['db_num_rows']($quizTopResult);
-	if ($rows > 0)
-	{
-		while ($quiztitleRow = $smcFunc['db_fetch_assoc']($quizTopResult))
-		{
-			$top_correct = $quiztitleRow['top_correct'];
-			$top_id_user = $quiztitleRow['top_user_id'];
-			$top_user_name = $quiztitleRow['real_name'];
-			$top_time = $quiztitleRow['top_time'];
-			$quizTitle = $quiztitleRow['title'];
-			$quizImage = !empty($quiztitleRow['image']) ? $settings["default_images_url"] . '/quiz_images/Quizes/' . $quiztitleRow['image'] : $quizImage ;
+	if ($rows > 0) {
+		while ($quiztitleRow = $smcFunc['db_fetch_assoc']($quizTopResult)) {
+			$top_correct = (int) $quiztitleRow['top_correct'];
+			$top_id_user = (int) $quiztitleRow['top_user_id'];
+			$top_user_name = (string) ($quiztitleRow['real_name'] ?? '');
+			$top_time = (int) $quiztitleRow['top_time'];
+			$quizTitle = (string) $quiztitleRow['title'];
+			if (!empty($quiztitleRow['image'])) {
+				$quizImage = $settings['default_images_url'] . '/quiz_images/Quizes/' . $quiztitleRow['image'];
+			}
 		}
-		if (($correct > $top_correct) || ($correct == $top_correct && $total_seconds < $top_time))
+
+		if ($correct > $top_correct || ($correct === $top_correct && $total_seconds < $top_time)) {
 			$topScore = true;
-	}
-	else
+		}
+	} else {
 		$topScore = true;
+	}
 
 	$smcFunc['db_free_result']($quizTopResult);
 
-	// If this is not a top score
-	if ($topScore == false)
-	{
-		// No top score, just update the number of quiz plays for this quiz
+	if ($topScore === false) {
 		$smcFunc['db_query']('', '
 			UPDATE {db_prefix}quiz
 			SET
@@ -205,159 +214,171 @@ function UpdateQuiz($id_quiz, $questions, $correct, $total_seconds, $id_user, $n
 				question_plays = question_plays + {int:questions},
 				total_correct = total_correct + {int:correct}
 			WHERE id_quiz = {int:id_quiz}',
-			array(
+			[
 				'questions' => $questions,
 				'correct' => $correct,
 				'id_quiz' => $id_quiz,
-			)
+			]
 		);
 
-		// Add entry for infoboard
 		AddInfoBoardentry($id_user, $name, $id_quiz, $correct, $total_seconds, false, $quizTitle, $quizImage);
-	
-	// Otherwise a top score
+
+		return;
 	}
-	else
-	{
-		// Only send PM if set to do so
-		if ($modSettings['SMFQuiz_SendPMOnBrokenTopScore'])
-		{
-			// PM the user who had the top score
-			require_once($sourcedir . '/Subs-Post.php');
 
-			$pmto = array(
-				'to' => array(),
-				'bcc' => array($top_id_user)
-			);
+	if (!empty($modSettings['SMFQuiz_SendPMOnBrokenTopScore']) && $top_id_user !== 0) {
+		require_once($sourcedir . '/Subs-Post.php');
 
-			$subject = ParseMessage($modSettings['SMFQuiz_PMBrokenTopScoreSubject'], $quizTitle, $total_seconds, $correct, $top_time, $top_correct, $quizImage, $scripturl, $id_quiz, $top_user_name);
-			$message = ParseMessage($modSettings['SMFQuiz_PMBrokenTopScoreMsg'], $quizTitle, $total_seconds, $correct, $top_time, $top_correct, $quizImage, $scripturl, $id_quiz, $top_user_name);
+		$pmto = [
+			'to' => [],
+			'bcc' => [$top_id_user],
+		];
 
-			$pmfrom = array(
-				'id' => $user_settings['id_member'],
-				'name' => $user_settings['real_name'],
-				'username' => $user_settings['member_name']
-			);
-			
-			// Send message
-			sendpm($pmto, $subject, $message, 0, $pmfrom);
-				
-		}
+		$subject = ParseMessage($modSettings['SMFQuiz_PMBrokenTopScoreSubject'], $quizTitle, $total_seconds, $correct, $top_time, $top_correct, $quizImage, $scripturl, $id_quiz, $top_user_name);
+		$message = ParseMessage($modSettings['SMFQuiz_PMBrokenTopScoreMsg'], $quizTitle, $total_seconds, $correct, $top_time, $top_correct, $quizImage, $scripturl, $id_quiz, $top_user_name);
+		$pmfrom = [
+			'id' => $user_settings['id_member'],
+			'name' => $user_settings['real_name'],
+			'username' => $user_settings['member_name'],
+		];
 
-		// Update top score too
-		$smcFunc['db_query']('', "
-			UPDATE {db_prefix}quiz
-			SET
-				quiz_plays = quiz_plays + 1,
-				question_plays = question_plays + {int:questions},
-				total_correct = total_correct + {int:correct},
-				top_user_id = {int:id_user},
-				top_correct = {int:correct},
-				top_time = {int:total_seconds}
-			WHERE id_quiz = {int:id_quiz}",
-			array(
-				'questions' => $questions,
-				'correct' => $correct,
-				'id_user' => $id_user,
-				'total_seconds' => $total_seconds,
-				'id_quiz' => $id_quiz,
-			)
-		);
-
-		AddInfoBoardentry($id_user, $name, $id_quiz, $correct, $total_seconds, true, $quizTitle, $quizImage);
+		sendpm($pmto, $subject, $message, 0, $pmfrom);
 	}
+
+	$smcFunc['db_query']('', '
+		UPDATE {db_prefix}quiz
+		SET
+			quiz_plays = quiz_plays + 1,
+			question_plays = question_plays + {int:questions},
+			total_correct = total_correct + {int:correct},
+			top_user_id = {int:id_user},
+			top_correct = {int:correct},
+			top_time = {int:total_seconds}
+		WHERE id_quiz = {int:id_quiz}',
+		[
+			'questions' => $questions,
+			'correct' => $correct,
+			'id_user' => $id_user,
+			'total_seconds' => $total_seconds,
+			'id_quiz' => $id_quiz,
+		]
+	);
+
+	AddInfoBoardentry($id_user, $name, $id_quiz, $correct, $total_seconds, true, $quizTitle, $quizImage);
 }
 
-// @TODO complete re-work, probably a log that would allow for localization
-function AddInfoBoardentry($id_user, $name, $id_quiz, $correct, $total_seconds, $topScore, $quizTitle, $quizImage)
+/**
+ * Adds a quiz result entry to the infoboard.
+ *
+ * @param int $id_user Member ID.
+ * @param string $name Member display name.
+ * @param int $id_quiz Quiz ID.
+ * @param int $correct Correct answers.
+ * @param int $total_seconds Elapsed seconds.
+ * @param bool $topScore Whether the result is a new top score.
+ * @param string $quizTitle Quiz title.
+ * @param string $quizImage Quiz image URL.
+ */
+function AddInfoBoardentry(int $id_user, string $name, int $id_quiz, int $correct, int $total_seconds, bool $topScore, string $quizTitle, string $quizImage): void
 {
 	global $smcFunc, $db_prefix, $boardurl, $settings, $txt;
 
-	// Format the infoboard entry
-	if ($topScore == true)
+	if ($topScore === true) {
 		$entry = '<img src="' . $settings['default_images_url'] . '/quiz_images/cup_g.gif"/> <a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=userdetails;id_user=' . $id_user . '"><b>' . addslashes($name) . '</b></a> ' . $txt['SMFQuiz_QuizEnd_Page']['JustAnswered'] . ' <b>' . $correct . '</b> ' . $txt['SMFQuiz_QuizEnd_Page']['QuestionsCorrectlyInThe'] . ' <img width="17" height="17" src="' . $quizImage . '"/><b> <a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=categories;id_quiz=' . $id_quiz . '">' . addslashes($quizTitle) . '</a></b> ' . $txt['SMFQuiz_QuizEnd_Page']['QuizInATimeOf'] . ' <b>' . $total_seconds . '</b> ' . $txt['SMFQuiz_QuizEnd_Page']['SecondsThisIsANewTopScore'];
-	else
-		$entry = '<a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=userdetails;id_user=' . $id_user . '"><b>' . addslashes($name) . '</b></a> ' . $txt['SMFQuiz_QuizEnd_Page']['JustAnswered'] . ' <b>' . $correct . '</b> ' . $txt['SMFQuiz_QuizEnd_Page']['QuestionsCorrectlyInThe'] . ' <img width="17" height="17" src="' . $quizImage . '"/><b> <a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=categories;id_quiz=' . $id_quiz . '">' . addslashes($quizTitle) . '</a></b> ' . $txt['SMFQuiz_QuizEnd_Page']['QuizInATimeOf'] . ' <b>' . $total_seconds . '</b> ' . $txt['SMFQuiz_Common']['seconds'] ;
+	} else {
+		$entry = '<a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=userdetails;id_user=' . $id_user . '"><b>' . addslashes($name) . '</b></a> ' . $txt['SMFQuiz_QuizEnd_Page']['JustAnswered'] . ' <b>' . $correct . '</b> ' . $txt['SMFQuiz_QuizEnd_Page']['QuestionsCorrectlyInThe'] . ' <img width="17" height="17" src="' . $quizImage . '"/><b> <a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=categories;id_quiz=' . $id_quiz . '">' . addslashes($quizTitle) . '</a></b> ' . $txt['SMFQuiz_QuizEnd_Page']['QuizInATimeOf'] . ' <b>' . $total_seconds . '</b> ' . $txt['SMFQuiz_Common']['seconds'];
+	}
 
 	$time = time();
-
-// @TODO utf8
 	$entry = $smcFunc['db_escape_string'](html_entity_decode($entry, ENT_QUOTES, 'UTF-8'));
 
-	// Write the infoboard entry to the database
 	$smcFunc['db_insert']('',
 		'{db_prefix}quiz_infoboard',
-		array(
+		[
 			'entry_date' => 'int',
 			'entry' => 'string',
-		),
-		array(
+		],
+		[
 			$time,
 			$entry,
-		),
-		array(
-			'id_infoboard'
-		)
+		],
+		[
+			'id_infoboard',
+		]
 	);
 }
 
-// @TODO complete re-work, probably a log that would allow for localization
-function AddQuizLeagueInfoBoardentry($id_user, $name, $id_quiz_league, $correct, $total_seconds)
+/**
+ * Adds a quiz league result entry to the infoboard.
+ *
+ * @param int $id_user Member ID.
+ * @param string $name Member display name.
+ * @param int $id_quiz_league Quiz league ID.
+ * @param int $correct Correct answers.
+ * @param int $total_seconds Elapsed seconds.
+ */
+function AddQuizLeagueInfoBoardentry(int $id_user, string $name, int $id_quiz_league, int $correct, int $total_seconds): void
 {
 	global $smcFunc, $db_prefix, $boardurl, $settings, $txt;
 
-	// Get title of quiz league just played
-	// TODO - More efficient to pass in querystring
 	$quiztitleResult = $smcFunc['db_query']('', '
 		SELECT QL.title
 		FROM {db_prefix}quiz_league QL
 		WHERE QL.id_quiz_league = {int:id_quiz_league}',
-		array(
+		[
 			'id_quiz_league' => $id_quiz_league,
-		)
+		]
 	);
 
 	$quiztitle = '';
-	if ($smcFunc['db_num_rows']($quiztitleResult) > 0)
-		list($quiztitle) = $smcFunc['db_fetch_row']($quiztitleResult);
-
+	if ($smcFunc['db_num_rows']($quiztitleResult) > 0) {
+		[$quiztitle] = $smcFunc['db_fetch_row']($quiztitleResult);
+	}
 	$smcFunc['db_free_result']($quiztitleResult);
 
-	// Format the infoboard entry
-// @TODO localization
-// @TODO check escaping
 	$entry = '<a href="' . $boardurl . '/index.php?action=SMFQuiz;sa=userdetails;id_user=' . $id_user . '"><b>' . addslashes($name) . '</b></a> just answered <b>' . $correct . '</b> questions correctly in the <b>' . addslashes($quiztitle) . '</b> quiz league in a time of <b>' . $total_seconds . '</b> seconds.';
-// @TODO utf8
 	$entry = $smcFunc['db_escape_string'](html_entity_decode($entry, ENT_QUOTES, 'UTF-8'));
 	$time = time();
 
-	// Write the infoboard entry to the database
 	$smcFunc['db_insert']('',
 		'{db_prefix}quiz_infoboard',
-		array(
+		[
 			'entry_date' => 'int',
 			'entry' => 'string',
-		),
-		array(
+		],
+		[
 			$time,
 			$entry,
-		),
-		array(
-			'id_infoboard'
-		)
+		],
+		[
+			'id_infoboard',
+		]
 	);
 }
 
-function InsertQuizLeagueEnd($id_quiz_league, $id_user, $questions, $correct, $incorrect, $timeouts, $total_seconds, $points, $round, $seconds, $name)
+/**
+ * Inserts a quiz league result and updates league totals.
+ *
+ * @param int $id_quiz_league Quiz league ID.
+ * @param int $id_user Member ID.
+ * @param int $questions Questions answered.
+ * @param int $correct Correct answers.
+ * @param int $incorrect Incorrect answers.
+ * @param int $timeouts Timeout count.
+ * @param int $total_seconds Elapsed seconds.
+ * @param int $points Points earned.
+ * @param int $round League round.
+ * @param int $seconds Seconds stored for the result row.
+ * @param string $name Member display name.
+ */
+function InsertQuizLeagueEnd(int $id_quiz_league, int $id_user, int $questions, int $correct, int $incorrect, int $timeouts, int $total_seconds, int $points, int $round, int $seconds, string $name): void
 {
 	global $smcFunc, $db_prefix;
 
 	$result_date = time();
-
-	// Create a result for this quiz league play in the database
 	$smcFunc['db_insert']('',
 		'{db_prefix}quiz_league_result',
-		array(
+		[
 			'id_quiz_league' => 'int',
 			'id_user' => 'int',
 			'round' => 'int',
@@ -367,8 +388,8 @@ function InsertQuizLeagueEnd($id_quiz_league, $id_user, $questions, $correct, $i
 			'incorrect' => 'int',
 			'timeouts' => 'int',
 			'seconds' => 'int',
-		),
-		array(
+		],
+		[
 			$id_quiz_league,
 			$id_user,
 			$round,
@@ -378,10 +399,10 @@ function InsertQuizLeagueEnd($id_quiz_league, $id_user, $questions, $correct, $i
 			$incorrect,
 			$timeouts,
 			$seconds,
-		),
-		array(
-			'id_quiz_league_result'
-		)
+		],
+		[
+			'id_quiz_league_result',
+		]
 	);
 
 	$smcFunc['db_query']('', '
@@ -390,33 +411,46 @@ function InsertQuizLeagueEnd($id_quiz_league, $id_user, $questions, $correct, $i
 			total_plays = total_plays + 1,
 			total_correct = total_correct + {int:correct},
 			total_incorrect = total_incorrect + {int:incorrect},
-			total_timeouts = total_timeouts + {int:timeouts}',
-		array(
+			total_timeouts = total_timeouts + {int:timeouts}
+		WHERE id_quiz_league = {int:id_quiz_league}',
+		[
 			'correct' => $correct,
 			'incorrect' => $incorrect,
 			'timeouts' => $timeouts,
-		)
+			'id_quiz_league' => $id_quiz_league,
+		]
 	);
 
-	// Write the infoboard entry to the database
 	AddQuizLeagueInfoBoardentry($id_user, $name, $id_quiz_league, $correct, $total_seconds);
 }
 
-function ParseMessage($message, $quiztitle, $total_seconds, $total_points, $top_time, $top_points, $quizImage, $scripturl, $id_quiz, $old_member_name)
+/**
+ * Replaces PM template tokens with quiz data.
+ *
+ * @param string $message Template message.
+ * @param string $quiztitle Quiz title.
+ * @param int $total_seconds New score seconds.
+ * @param int $total_points New score points.
+ * @param int $top_time Previous top time.
+ * @param int $top_points Previous top points.
+ * @param string $quizImage Quiz image URL.
+ * @param string $scripturl Forum script URL.
+ * @param int $id_quiz Quiz ID.
+ * @param string $old_member_name Previous top scorer name.
+ * @return string
+ */
+function ParseMessage(string $message, string $quiztitle, int $total_seconds, int $total_points, int $top_time, int $top_points, string $quizImage, string $scripturl, int $id_quiz, string $old_member_name): string
 {
 	global $user_settings;
 
-// @TODO single replace
-	$message = str_replace("{quiz_name}", $quiztitle, $message); 
-	$message = str_replace("{new_score_seconds}", $total_seconds, $message); 
-	$message = str_replace("{new_score}", $total_points, $message); 
-	$message = str_replace("{old_score_seconds}", $top_time, $message); 
-	$message = str_replace("{old_score}", $top_points, $message); 
-	$message = str_replace("{member_name}", $user_settings['real_name'], $message); 
-	$message = str_replace("{old_member_name}", $old_member_name, $message); 
-	$message = str_replace("{quiz_image}", "[img]" . $quizImage . "[/img]", $message); 
-	$message = str_replace("{quiz_link}", $scripturl . '?action=SMFQuiz;sa=categories;id_quiz=' . $id_quiz, $message); 
-	return $message;
-}
+	$message = str_replace('{quiz_name}', $quiztitle, $message);
+	$message = str_replace('{new_score_seconds}', (string) $total_seconds, $message);
+	$message = str_replace('{new_score}', (string) $total_points, $message);
+	$message = str_replace('{old_score_seconds}', (string) $top_time, $message);
+	$message = str_replace('{old_score}', (string) $top_points, $message);
+	$message = str_replace('{member_name}', (string) $user_settings['real_name'], $message);
+	$message = str_replace('{old_member_name}', $old_member_name, $message);
+	$message = str_replace('{quiz_image}', '[img]' . $quizImage . '[/img]', $message);
 
-?>
+	return str_replace('{quiz_link}', $scripturl . '?action=SMFQuiz;sa=categories;id_quiz=' . $id_quiz, $message);
+}

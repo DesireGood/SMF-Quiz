@@ -1,163 +1,133 @@
 <?php
 
-if (!defined('SMF'))
-	die('Hacking attempt...');
+declare(strict_types=1);
+
+if (!defined('SMF')) {
+    die('Hacking attempt...');
+}
 
 /**
- * At the moment the function dies here because it provides xml or json outputs
- * that don't cope very well with the rest of the template... :-P
+ * Handles quiz image AJAX requests.
  */
-function quizImageUpload ()
+function quizImageUpload(): void
 {
-	if (empty($_GET['sa']))
-		die();
+    global $context;
 
-	if (!allowedTo('quiz_admin'))
-	{
-		// @TODO implement an error handling
-		$context['quiz_error'] = 'cannot_admin';
-		die();
-	}
+    $action = (string) ($_GET['sa'] ?? '');
+    if ($action === '') {
+        die();
+    }
 
-	// The function to be used is specified in the sub-action querystring
-	$action = $_GET['sa'];
-	switch ($action)
-	{
-		case 'imageList':
-			GetImages();
-			break;
-		case 'imageUpload':
-			ImageUpload();
-			break;
-	}
-	die();
+    if (!allowedTo('quiz_admin')) {
+        $context['quiz_error'] = 'cannot_admin';
+        die();
+    }
+
+    $handler = match ($action) {
+        'imageList' => 'GetImages',
+        'imageUpload' => 'ImageUpload',
+        default => null,
+    };
+
+    if ($handler !== null) {
+        $handler();
+    }
+
+    die();
 }
 
-/*
-Function that handles the retrieval of images from the quiz images folder, or the specified subfolder of the quiz images folder. The result
-is returned as XML for use in displaying the file listing as part of an AJAX call. The XML is in the following format:
-<files>
-	<file></file>
-</files>
-*/
-function GetImages()
+/**
+ * Returns quiz images from the requested folder as XML.
+ */
+function GetImages(): void
 {
-	global $boarddir;
+    global $boarddir;
 
-	header("Content-Type: text/xml");
+    header('Content-Type: text/xml');
 
-	if (isset($_GET['imageFolder']))
-		$imageFolder = $_GET['imageFolder'];
-	else
-		$imageFolder = '';
+    $imageFolder = trim((string) ($_GET['imageFolder'] ?? ''), '/');
+    $path = $boarddir . '/Themes/default/images/quiz_images/' . $imageFolder;
+    $dirHandle = @opendir($path);
 
-	$path = $boarddir . '/Themes/default/images/quiz_images/' . $imageFolder;
+    if ($dirHandle === false) {
+        die("Unable to open $path");
+    }
 
-	//using the opendir function
-		// @TODO check?
-	$dir_handle = @opendir($path) or die("Unable to open $path");
+    $files = [];
+    while (($file = readdir($dirHandle)) !== false) {
+        if ($file !== '.' && $file !== '..') {
+            $files[] = $file;
+        }
+    }
 
-		// @TODO init $file
-	//running the while loop
-	while ($file = readdir($dir_handle))
-		if($file!="." && $file!="..")
-			$files[] = $file;
+    sort($files);
 
-	// @TODO quotes
-	sort($files);
-	echo '<files>';
-	for ($i = 0; $i < sizeof($files); $i++)
-		echo "<file>$files[$i]</file>";
+    echo '<files>';
+    foreach ($files as $file) {
+        echo '<file>', $file, '</file>';
+    }
+    echo '</files>';
 
-	echo '</files>';
-
-	//closing the directory
-	closedir($dir_handle);
+    closedir($dirHandle);
 }
 
-/*
-Function used for uploading an image to the quiz images folder, or the specified sub folder of the quiz images folder.
-*/
-function ImageUpload()
+/**
+ * Uploads a quiz image and returns the upload result payload.
+ */
+function ImageUpload(): void
 {
-	global $boarddir;
+    global $boarddir;
 
-	$error = "";
-	$msg = "";
-	$fileName = "";
-	$fileElementName = 'fileToUpload';
-	if(!empty($_FILES[$fileElementName]['error']))
-	{
-	// @TODO localization
-		switch($_FILES[$fileElementName]['error'])
-		{
-			case '1':
-				$error = 'The uploaded file exceeds the upload_max_filesize directive in php.ini';
-				break;
-			case '2':
-				$error = 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form';
-				break;
-			case '3':
-				$error = 'The uploaded file was only partially uploaded';
-				break;
-			case '4':
-				$error = 'No file was uploaded.';
-				break;
-			case '6':
-				$error = 'Missing a temporary folder';
-				break;
-			case '7':
-				$error = 'Failed to write file to disk';
-				break;
-			case '8':
-				$error = 'File upload stopped by extension';
-				break;
-			case '999':
-			default:
-				$error = 'No error code available';
-		}
-	}
-	elseif(empty($_FILES['fileToUpload']['tmp_name']) || $_FILES['fileToUpload']['tmp_name'] == 'none')
-	{
-		$error = 'No file was uploaded..';
-	}
-		// @TODO check
-	elseif(!preg_match('/image/', $_FILES['fileToUpload']['type']))
-	{
-		$msg = ('The uploaded file is not an image please upload a valid file');
-		@unlink($_FILES['fileToUpload']['tmp_name']);
-	}
-	else
-	{
-		$msg .= " File Name: " . $_FILES['fileToUpload']['name'] . ", ";
-		$msg .= " File Size: " . @filesize($_FILES['fileToUpload']['tmp_name']);
-		$fileName = $_FILES['fileToUpload']['name'];
+    $error = '';
+    $msg = '';
+    $fileName = '';
+    $fileElementName = 'fileToUpload';
+    $upload = $_FILES[$fileElementName] ?? [];
+    $uploadError = (int) ($upload['error'] ?? 0);
+    $tmpName = (string) ($upload['tmp_name'] ?? '');
+    $mimeType = (string) ($upload['type'] ?? '');
+    $fileName = (string) ($upload['name'] ?? '');
 
-		// Where it will be saved?
-		if (isset($_GET['imageFolder']))
-			$imageFolder = $_GET['imageFolder'] . '/';
-		else
-			$imageFolder = '';
+    if ($uploadError !== 0) {
+        $error = match ($uploadError) {
+            1 => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+            2 => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+            3 => 'The uploaded file was only partially uploaded',
+            4 => 'No file was uploaded.',
+            6 => 'Missing a temporary folder',
+            7 => 'Failed to write file to disk',
+            8 => 'File upload stopped by extension',
+            default => 'No error code available',
+        };
+    } elseif ($tmpName === '' || $tmpName === 'none') {
+        $error = 'No file was uploaded..';
+    } elseif (!preg_match('/image/', $mimeType)) {
+        $msg = 'The uploaded file is not an image please upload a valid file';
+        @unlink($tmpName);
+    } else {
+        $msg .= ' File Name: ' . $fileName . ', ';
+        $fileSize = @filesize($tmpName);
+        $msg .= ' File Size: ' . ($fileSize === false ? 0 : $fileSize);
 
-		$destination = $boarddir . '/Themes/default/images/quiz_images/' . $imageFolder . $_FILES['fileToUpload']['name'];
-		// @TODO chmod??
-		@chmod($destination, 0777);
+        $imageFolder = trim((string) ($_GET['imageFolder'] ?? ''), '/');
+        if ($imageFolder !== '') {
+            $imageFolder .= '/';
+        }
 
-		// It is already here
-		if (file_exists($destination))
-			$msg = ('Filename already exists on destination');
+        $destination = $boarddir . '/Themes/default/images/quiz_images/' . $imageFolder . $fileName;
+        @chmod($destination, 0777);
 
-		// Move and make writable
-		// @TODO chmod??
-		move_uploaded_file($_FILES['fileToUpload']['tmp_name'], $destination);
-		@chmod($destination, 0777);
-	}
-		// @TODO echo
-	echo "{";
-	echo				"error: '" . $error . "',\n";
-	echo				"msg: '" . $msg . "',\n";
-	echo				"filename: '" . $fileName . "'\n";
-	echo "}";
+        if (file_exists($destination)) {
+            $msg = 'Filename already exists on destination';
+        } else {
+            move_uploaded_file($tmpName, $destination);
+            @chmod($destination, 0777);
+        }
+    }
+
+    echo "{";
+    echo "error: '" . $error . "',\n";
+    echo "msg: '" . $msg . "',\n";
+    echo "filename: '" . $fileName . "'\n";
+    echo '}';
 }
-
-?>
