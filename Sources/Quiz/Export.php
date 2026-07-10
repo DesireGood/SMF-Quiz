@@ -52,11 +52,10 @@ function PackageQuiz(): void
     }
 
     $sanitized   = preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string)($_GET['packageName'] ?? 'NoNameEntered'));
-    // Ensure the name never starts with a hyphen (some tools treat leading hyphens as flags)
-    $packageName = ltrim($sanitized, '-') . '.xml';
-    if ($packageName === '.xml') {
-        $packageName = 'export.xml';
-    }
+    // Collapse runs of hyphens, then strip leading/trailing hyphens
+    $sanitized   = preg_replace('/-{2,}/', '-', $sanitized) ?? $sanitized;
+    $sanitized   = trim($sanitized, '-');
+    $packageName = ($sanitized !== '' ? $sanitized : 'export') . '.xml';
     $packageDescription = trim((string)($_GET['packageDescription'] ?? '')) ?: 'No description entered';
     $packageAuthor      = trim((string)($_GET['packageAuthor'] ?? '')) ?: 'No author entered';
     $packageSiteAddress = trim((string)($_GET['packageSiteAddress'] ?? '')) ?: 'No site entered';

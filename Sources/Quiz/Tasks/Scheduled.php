@@ -361,7 +361,7 @@ class Scheduled
 
         require_once($sourcedir . '/Quiz/Db.php');
 
-        $date = (int)strtotime('-7 days');
+        $date = (new \DateTime('-7 days'))->getTimestamp();
 
         DeleteInfoBoardEntries($date);
         CleanDisputes();

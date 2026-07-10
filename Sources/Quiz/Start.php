@@ -217,7 +217,8 @@ function GetQuizDetails(int $idQuiz, int $idUser, string $idSession, bool $debug
             WHERE id_quiz = {int:id_quiz} AND id_user = {int:id_user}',
             ['id_user' => $idUser, 'id_quiz' => $idQuiz]
         );
-        [$timesPlayed] = $smcFunc['db_fetch_row']($pResult);
+        $pRow = $smcFunc['db_fetch_row']($pResult);
+        $timesPlayed = $pRow !== false ? (int)$pRow[0] : 0;
         $smcFunc['db_free_result']($pResult);
     }
     $smcFunc['db_free_result']($result);
